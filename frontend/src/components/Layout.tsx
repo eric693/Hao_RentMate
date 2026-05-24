@@ -14,6 +14,8 @@ import {
   ChevronDown,
   Sparkles,
   Bell,
+  Megaphone,
+  TrendingUp,
 } from 'lucide-react';
 
 const FINANCE_ITEMS = [
@@ -53,7 +55,7 @@ export default function Layout() {
               <Home className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="font-bold text-gray-800 text-sm leading-tight">MicroRent</div>
+              <div className="font-bold text-gray-800 text-sm leading-tight">RentMate</div>
               <div className="text-xs text-gray-400">房東管理平台</div>
             </div>
           </div>
@@ -129,6 +131,8 @@ export default function Layout() {
             )}
           </div>
 
+          <SidebarLink to="/listings" label="空房刊登" icon={Megaphone} />
+          <SidebarLink to="/roi" label="投報分析" icon={TrendingUp} />
           <SidebarLink to="/maintenance" label="報修" icon={Wrench} />
           <SidebarLink to="/contracts" label="合約" icon={FileText} />
           <SidebarLink to="/settings" label="設定" icon={Settings} />
@@ -146,7 +150,7 @@ export default function Layout() {
           </button>
         </div>
 
-        <div className="px-4 pb-3 text-xs text-gray-300">MicroRent 房東管理後台 v1.0.0</div>
+        <div className="px-4 pb-3 text-xs text-gray-300">RentMate 房東管理後台 v1.0.0</div>
       </aside>
 
       {/* Main */}

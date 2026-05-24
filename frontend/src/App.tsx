@@ -14,6 +14,8 @@ import ExpenseRecords from './pages/ExpenseRecords';
 import Maintenance from './pages/Maintenance';
 import Settings from './pages/Settings';
 import SignContract from './pages/SignContract';
+import Listings from './pages/Listings';
+import ROIAnalysis from './pages/ROIAnalysis';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,6 +47,8 @@ export default function App() {
             <Route path="finance/utilities" element={<UtilityBills />} />
             <Route path="finance/expenses" element={<ExpenseRecords />} />
             <Route path="contracts" element={<Contracts />} />
+            <Route path="listings" element={<Listings />} />
+            <Route path="roi" element={<ROIAnalysis />} />
             <Route path="maintenance" element={<Maintenance />} />
             <Route path="settings" element={<Settings />} />
           </Route>

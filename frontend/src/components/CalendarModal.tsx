@@ -80,7 +80,7 @@ export default function CalendarModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-brand" />
-            <span className="font-semibold text-sm text-gray-700">MicroRent 行事曆</span>
+            <span className="font-semibold text-sm text-gray-700">RentMate 行事曆</span>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100">
             <CloseIcon className="w-4 h-4" />

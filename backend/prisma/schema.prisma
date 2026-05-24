@@ -22,12 +22,13 @@ model User {
 }
 
 model Property {
-  id          String   @id @default(cuid())
-  userId      String
-  name        String
-  address     String
-  description String?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  address       String
+  description   String?
+  purchasePrice Decimal? @db.Decimal(14, 2)
+  createdAt     DateTime @default(now())
 
   user     User      @relation(fields: [userId], references: [id])
   units    Unit[]
@@ -49,6 +50,7 @@ model Unit {
   contracts           Contract[]
   maintenanceRequests MaintenanceRequest[]
   expenses            Expense[]
+  listings            ListingRecord[]
 }
 
 enum UnitStatus {
@@ -93,9 +95,43 @@ model Contract {
   signerName    String?
   createdAt     DateTime       @default(now())
 
-  unit        Unit         @relation(fields: [unitId], references: [id])
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  rentRecords RentRecord[]
+  unit          Unit          @relation(fields: [unitId], references: [id])
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  rentRecords   RentRecord[]
+  depositRefund DepositRefund?
+}
+
+model DepositRefund {
+  id              String              @id @default(cuid())
+  contractId      String              @unique
+  depositAmount   Decimal             @db.Decimal(10, 2)
+  totalDeductions Decimal             @db.Decimal(10, 2) @default(0)
+  refundAmount    Decimal             @db.Decimal(10, 2)
+  status          DepositRefundStatus @default(PENDING)
+  refundDate      DateTime?
+  notes           String?
+  notifiedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  contract   Contract           @relation(fields: [contractId], references: [id])
+  deductions DepositDeduction[]
+}
+
+model DepositDeduction {
+  id              String   @id @default(cuid())
+  depositRefundId String
+  description     String
+  amount          Decimal  @db.Decimal(10, 2)
+  category        String   @default("OTHER")
+
+  depositRefund DepositRefund @relation(fields: [depositRefundId], references: [id], onDelete: Cascade)
+}
+
+enum DepositRefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
 }
 
 enum ContractStatus {
@@ -211,6 +247,19 @@ enum ExpenseCategory {
   INSURANCE
   INTERNET
   OTHER
+}
+
+model ListingRecord {
+  id          String   @id @default(cuid())
+  unitId      String
+  platform    String
+  listedAt    DateTime @default(now())
+  expiresAt   DateTime?
+  url         String?
+  status      String   @default("ACTIVE")
+  notes       String?
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 }
 
 model LineBinding {

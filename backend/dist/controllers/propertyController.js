@@ -23,25 +23,41 @@ async function getProperties(req, res) {
     res.json(properties);
 }
 async function createProperty(req, res) {
-    const { name, address, description } = req.body;
+    const { name, address, description, purchasePrice } = req.body;
     if (!name || !address) {
         res.status(400).json({ error: '請填寫名稱與地址' });
         return;
     }
     const property = await app_1.prisma.property.create({
-        data: { userId: req.userId, name, address, description },
+        data: {
+            userId: req.userId,
+            name,
+            address,
+            description,
+            purchasePrice: purchasePrice ? Number(purchasePrice) : null,
+        },
     });
     res.status(201).json(property);
 }
 async function updateProperty(req, res) {
     const { id } = req.params;
-    const { name, address, description } = req.body;
+    const { name, address, description, purchasePrice } = req.body;
     const property = await app_1.prisma.property.findFirst({ where: { id, userId: req.userId } });
     if (!property) {
         res.status(404).json({ error: '找不到物業' });
         return;
     }
-    const updated = await app_1.prisma.property.update({ where: { id }, data: { name, address, description } });
+    const updated = await app_1.prisma.property.update({
+        where: { id },
+        data: {
+            name,
+            address,
+            description,
+            purchasePrice: purchasePrice !== undefined
+                ? (purchasePrice ? Number(purchasePrice) : null)
+                : undefined,
+        },
+    });
     res.json(updated);
 }
 async function deleteProperty(req, res) {

@@ -104,7 +104,7 @@ export default function SignContract() {
             <FileText className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-xl font-bold text-gray-800">電子租約簽署</h1>
-          <p className="text-sm text-gray-400 mt-1">MicroRent 房東管理平台</p>
+          <p className="text-sm text-gray-400 mt-1">RentMate 房東管理平台</p>
         </div>
 
         {/* Contract summary */}
@@ -201,7 +201,7 @@ export default function SignContract() {
         </button>
 
         <p className="text-center text-xs text-gray-300 mt-4">
-          本頁面由 MicroRent 提供 · 僅供本次合約簽署使用
+          本頁面由 RentMate 提供 · 僅供本次合約簽署使用
         </p>
       </div>
     </div>
