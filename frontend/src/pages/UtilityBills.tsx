@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Plus, Droplets, Zap, Flame, Building2 } from 'lucide-react';
+import { Plus, Droplets, Zap, Flame, Building2, Split, Send, X } from 'lucide-react';
 import api from '../api/client';
 import { Expense, Property } from '../types';
+
+interface Allocation { unitId: string; unitNumber: string; amount: number; basis: number | null }
+interface UtilityBill {
+  id: string;
+  category: string;
+  periodStart: string;
+  periodEnd: string;
+  totalAmount: number;
+  method: string;
+  property?: { name: string };
+  allocations: Array<{ id: string; amount: number; basis: number | null; billed: boolean; unit: { unitNumber: string } }>;
+}
+const METHOD_LABEL: Record<string, string> = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量' };
 
 const UTILITY_LABELS: Record<string, string> = { WATER: '水費', ELECTRICITY: '電費', GAS: '瓦斯費' };
 const UTILITY_COLORS: Record<string, string> = { WATER: '#60a5fa', ELECTRICITY: '#f59e0b', GAS: '#f97316' };
@@ -18,19 +31,29 @@ export default function UtilityBills() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
+  const [bills, setBills] = useState<UtilityBill[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchData(); }, [year, month]);
 
   async function fetchData() {
     setLoading(true);
-    const [r, p] = await Promise.all([
+    const [r, p, b] = await Promise.all([
       api.get(`/expenses?year=${year}&month=${month}`),
       api.get('/properties'),
+      api.get('/utility-bills'),
     ]);
     setExpenses(r.data.filter((e: Expense) => ['WATER', 'ELECTRICITY', 'GAS'].includes(e.category)));
     setProperties(p.data);
+    setBills(b.data);
     setLoading(false);
+  }
+
+  async function billToTenants(id: string) {
+    const r = await api.post(`/utility-bills/${id}/bill`);
+    alert(`已透過 LINE 通知 ${r.data.notified} / ${r.data.total} 位租客`);
+    fetchData();
   }
 
   async function deleteExpense(id: string) {
@@ -62,6 +85,9 @@ export default function UtilityBills() {
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="input text-xs py-1.5 px-2 w-16">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} 月</option>)}
           </select>
+          <button onClick={() => setShowSplit(true)} className="btn-secondary text-sm flex items-center gap-1">
+            <Split className="w-4 h-4" />費用分攤
+          </button>
           <button onClick={() => setShowAdd(true)} className="btn-primary text-sm flex items-center gap-1">
             <Plus className="w-4 h-4" />新增帳單
           </button>
@@ -134,6 +160,48 @@ export default function UtilityBills() {
         </div>
       )}
 
+      {/* 分攤帳單 */}
+      {bills.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+            <Split className="w-4 h-4 text-brand" />分攤帳單
+          </h2>
+          <div className="space-y-3">
+            {bills.map((b) => (
+              <div key={b.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span style={{ color: UTILITY_COLORS[b.category] }}>{UTILITY_ICONS[b.category]}</span>
+                    <span className="font-medium text-gray-700">{UTILITY_LABELS[b.category]}</span>
+                    <span className="text-xs text-gray-400">{b.property?.name}</span>
+                    <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{METHOD_LABEL[b.method]}分攤</span>
+                  </div>
+                  <span className="font-bold text-gray-800">NT${Number(b.totalAmount).toLocaleString()}</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  {new Date(b.periodStart).toLocaleDateString('zh-TW')} ~ {new Date(b.periodEnd).toLocaleDateString('zh-TW')}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                  {b.allocations.map((a) => (
+                    <div key={a.id} className="bg-warm rounded-lg px-2.5 py-1.5 text-xs flex items-center justify-between">
+                      <span className="text-gray-600">{a.unit.unitNumber}</span>
+                      <span className="font-medium text-gray-800">NT${Number(a.amount).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+                {b.allocations.every((a) => a.billed) ? (
+                  <span className="text-xs text-green-600">已開帳通知租客</span>
+                ) : (
+                  <button onClick={() => billToTenants(b.id)} className="btn-secondary text-xs flex items-center gap-1">
+                    <Send className="w-3.5 h-3.5" />LINE 開帳給租客
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {showAdd && (
         <AddUtilityModal
           properties={properties}
@@ -142,6 +210,162 @@ export default function UtilityBills() {
           onSaved={() => { setShowAdd(false); fetchData(); }}
         />
       )}
+
+      {showSplit && (
+        <SplitModal
+          properties={properties}
+          onClose={() => setShowSplit(false)}
+          onSaved={() => { setShowSplit(false); fetchData(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SplitModal({ properties, onClose, onSaved }: {
+  properties: Property[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  const [form, setForm] = useState({
+    propertyId: properties[0]?.id ?? '',
+    category: 'ELECTRICITY',
+    periodStart: firstDay,
+    periodEnd: lastDay,
+    totalAmount: '',
+    method: 'EVEN',
+  });
+  const [usage, setUsage] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<Allocation[] | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const property = properties.find((p) => p.id === form.propertyId);
+  const occupiedUnits = (property?.units ?? []).filter((u) => u.status === 'OCCUPIED');
+
+  function inputsPayload() {
+    return occupiedUnits.map((u) => ({ unitId: u.id, usage: Number(usage[u.id] ?? 0) }));
+  }
+
+  async function doPreview() {
+    if (!form.totalAmount) return;
+    const r = await api.post('/utility-bills/preview', {
+      propertyId: form.propertyId,
+      totalAmount: Number(form.totalAmount),
+      method: form.method,
+      inputs: inputsPayload(),
+    });
+    setPreview(r.data.allocations);
+  }
+
+  async function submit() {
+    setSaving(true);
+    try {
+      await api.post('/utility-bills', {
+        ...form,
+        totalAmount: Number(form.totalAmount),
+        inputs: inputsPayload(),
+      });
+      onSaved();
+    } catch (e: any) {
+      alert(e.response?.data?.error ?? '建立失敗');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg flex items-center gap-2"><Split className="w-5 h-5 text-brand" />水電費分攤</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">物業</label>
+              <select className="input" value={form.propertyId} onChange={(e) => { setForm({ ...form, propertyId: e.target.value }); setPreview(null); }}>
+                {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">類別</label>
+              <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                <option value="ELECTRICITY">電費</option>
+                <option value="WATER">水費</option>
+                <option value="GAS">瓦斯費</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">期間起</label>
+              <input type="date" className="input" value={form.periodStart} onChange={(e) => setForm({ ...form, periodStart: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">期間迄</label>
+              <input type="date" className="input" value={form.periodEnd} onChange={(e) => setForm({ ...form, periodEnd: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">總金額</label>
+              <input type="number" className="input" value={form.totalAmount} onChange={(e) => { setForm({ ...form, totalAmount: e.target.value }); setPreview(null); }} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">分攤方式</label>
+              <select className="input" value={form.method} onChange={(e) => { setForm({ ...form, method: e.target.value }); setPreview(null); }}>
+                <option value="EVEN">平均分攤</option>
+                <option value="AREA">依坪數</option>
+                <option value="HEADCOUNT">依人頭</option>
+                <option value="USAGE">依用量</option>
+              </select>
+            </div>
+          </div>
+
+          {form.method === 'USAGE' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">各房用量</label>
+              <div className="space-y-1.5">
+                {occupiedUnits.map((u) => (
+                  <div key={u.id} className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 w-20">{u.unitNumber}</span>
+                    <input type="number" className="input text-sm flex-1" placeholder="度數/用量" value={usage[u.id] ?? ''} onChange={(e) => { setUsage({ ...usage, [u.id]: e.target.value }); setPreview(null); }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button onClick={doPreview} className="btn-secondary text-sm w-full">試算分攤</button>
+
+          {preview && (
+            <div className="bg-warm rounded-xl p-3">
+              <div className="text-xs font-medium text-gray-600 mb-2">分攤結果（{occupiedUnits.length} 間在住）</div>
+              {preview.length === 0 ? (
+                <div className="text-xs text-gray-400">此物業目前無在住房間。</div>
+              ) : (
+                <div className="space-y-1">
+                  {preview.map((a) => (
+                    <div key={a.unitId} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{a.unitNumber}{a.basis != null ? `（${a.basis}）` : ''}</span>
+                      <span className="font-medium text-gray-800">NT${a.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button>
+            <button type="button" onClick={submit} disabled={saving || !form.totalAmount} className="btn-primary flex-1 disabled:opacity-50">{saving ? '建立中...' : '建立分攤帳單'}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

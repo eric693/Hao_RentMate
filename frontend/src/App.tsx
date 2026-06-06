@@ -11,11 +11,14 @@ import CollectionWorkbench from './pages/CollectionWorkbench';
 import RentManagement from './pages/RentManagement';
 import UtilityBills from './pages/UtilityBills';
 import ExpenseRecords from './pages/ExpenseRecords';
+import Reconciliation from './pages/Reconciliation';
+import TaxReport from './pages/TaxReport';
 import Maintenance from './pages/Maintenance';
 import Settings from './pages/Settings';
 import SignContract from './pages/SignContract';
 import Listings from './pages/Listings';
 import ROIAnalysis from './pages/ROIAnalysis';
+import RentComps from './pages/RentComps';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,10 +48,13 @@ export default function App() {
             <Route path="finance/workbench" element={<CollectionWorkbench />} />
             <Route path="finance/rent" element={<RentManagement />} />
             <Route path="finance/utilities" element={<UtilityBills />} />
+            <Route path="finance/reconcile" element={<Reconciliation />} />
             <Route path="finance/expenses" element={<ExpenseRecords />} />
+            <Route path="finance/tax" element={<TaxReport />} />
             <Route path="contracts" element={<Contracts />} />
             <Route path="listings" element={<Listings />} />
             <Route path="roi" element={<ROIAnalysis />} />
+            <Route path="market" element={<RentComps />} />
             <Route path="maintenance" element={<Maintenance />} />
             <Route path="settings" element={<Settings />} />
           </Route>

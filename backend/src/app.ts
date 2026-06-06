@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'path';
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
@@ -7,13 +9,21 @@ import { startReminderJobs } from './jobs/reminderCron';
 
 export const prisma = new PrismaClient();
 
+// 上傳目錄（維修照片等）
+export const UPLOAD_DIR = path.resolve(__dirname, '../uploads');
+fs.mkdirSync(path.join(UPLOAD_DIR, 'maintenance'), { recursive: true });
+
 const app = express();
 
 app.use(cors({
   origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
   credentials: true,
 }));
-app.use(express.json());
+// 影像以 base64 上傳，放寬 body 上限
+app.use(express.json({ limit: '15mb' }));
+
+// 靜態服務上傳檔案
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.use('/api', routes);
 

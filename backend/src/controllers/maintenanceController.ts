@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../app';
 import { sendLandlordMessage } from '../services/lineService';
+import { analyzeMaintenance } from '../services/aiService';
 
 async function getUserUnitIds(userId: string): Promise<string[]> {
   const properties = await prisma.property.findMany({ where: { userId } });
@@ -46,6 +47,25 @@ export async function createMaintenanceRequest(req: AuthRequest, res: Response) 
   await sendLandlordMessage(req.userId!, `🔧 新報修通知\n房間：${unit.unitNumber}\n項目：${title}\n優先級：${priority ?? '中'}`);
 
   res.status(201).json(request);
+}
+
+// 房東：對一張報修單做 AI 深度分析（責任歸屬 + 費用估算），結果存入 aiAnalysis
+export async function analyzeMaintenanceRequest(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  const request = await prisma.maintenanceRequest.findFirst({
+    where: { id },
+    include: { unit: { include: { property: true } } },
+  });
+  if (!request || request.unit.property.userId !== req.userId!) {
+    res.status(404).json({ error: '找不到報修單' });
+    return;
+  }
+  const analysis = await analyzeMaintenance(request.title, request.description, request.category ?? undefined);
+  const updated = await prisma.maintenanceRequest.update({
+    where: { id },
+    data: { aiAnalysis: analysis as any },
+  });
+  res.json({ ...analysis, request: updated });
 }
 
 export async function updateMaintenanceRequest(req: AuthRequest, res: Response) {

@@ -3,6 +3,98 @@ import * as XLSX from 'xlsx';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../app';
 
+// 報稅前異常預檢：在匯出申報表前找出可能讓房東報錯數字的問題。
+//  - 未確認收款：該年度仍 PENDING/OVERDUE/PARTIAL 的帳單（金額尚未落定）
+//  - 缺漏月份：ACTIVE 合約在涵蓋月份卻沒有對應 RentRecord（漏開帳 → 收入少計）
+//  - 金額跳動：某期 RentRecord 金額與合約月租金不一致（可能打錯）
+export async function taxPrecheck(req: AuthRequest, res: Response) {
+  const userId = req.userId!;
+  const year = Number(req.query.year) || new Date().getFullYear();
+  const startDate = new Date(`${year}-01-01T00:00:00`);
+  const endDate = new Date(`${year}-12-31T23:59:59`);
+
+  const contracts = await prisma.contract.findMany({
+    where: { unit: { property: { userId } } },
+    include: {
+      tenant: { select: { name: true } },
+      unit: { include: { property: { select: { name: true } } } },
+      rentRecords: { where: { dueDate: { gte: startDate, lte: endDate } } },
+    },
+  });
+
+  interface Issue {
+    severity: 'HIGH' | 'MEDIUM' | 'LOW';
+    type: 'UNCONFIRMED' | 'MISSING_MONTH' | 'AMOUNT_JUMP';
+    contractId: string;
+    label: string;
+    detail: string;
+  }
+  const issues: Issue[] = [];
+  const now = new Date();
+
+  for (const c of contracts) {
+    const where = `${c.unit.property.name} ${c.unit.unitNumber} ${c.tenant.name}`;
+    const monthlyRent = Number(c.monthlyRent);
+
+    // 未確認收款
+    for (const r of c.rentRecords) {
+      if (['PENDING', 'OVERDUE', 'PARTIAL'].includes(r.status) && r.dueDate <= now) {
+        issues.push({
+          severity: r.status === 'PARTIAL' ? 'MEDIUM' : 'HIGH',
+          type: 'UNCONFIRMED',
+          contractId: c.id,
+          label: where,
+          detail: `${r.year}/${r.month} 仍為「${r.status}」，金額尚未落定，請先確認收款再申報。`,
+        });
+      }
+      // 金額跳動
+      if (Math.abs(Number(r.amount) - monthlyRent) > 1) {
+        issues.push({
+          severity: 'LOW',
+          type: 'AMOUNT_JUMP',
+          contractId: c.id,
+          label: where,
+          detail: `${r.year}/${r.month} 帳單金額 NT$${Number(r.amount).toLocaleString()} 與合約月租 NT$${monthlyRent.toLocaleString()} 不符，請確認是否正確。`,
+        });
+      }
+    }
+
+    // 缺漏月份：合約在該年度涵蓋的月份應有帳單
+    const cStart = c.startDate > startDate ? c.startDate : startDate;
+    const cEnd = c.endDate < endDate ? c.endDate : endDate;
+    if (cStart <= cEnd && c.status !== 'TERMINATED') {
+      const present = new Set(c.rentRecords.map((r) => `${r.year}-${r.month}`));
+      const cur = new Date(cStart.getFullYear(), cStart.getMonth(), 1);
+      const last = new Date(cEnd.getFullYear(), cEnd.getMonth(), 1);
+      while (cur <= last) {
+        const key = `${cur.getFullYear()}-${cur.getMonth() + 1}`;
+        if (!present.has(key)) {
+          issues.push({
+            severity: 'MEDIUM',
+            type: 'MISSING_MONTH',
+            contractId: c.id,
+            label: where,
+            detail: `${cur.getFullYear()}/${cur.getMonth() + 1} 無繳租紀錄，可能漏開帳導致收入少計。`,
+          });
+        }
+        cur.setMonth(cur.getMonth() + 1);
+      }
+    }
+  }
+
+  const counts = {
+    high: issues.filter((i) => i.severity === 'HIGH').length,
+    medium: issues.filter((i) => i.severity === 'MEDIUM').length,
+    low: issues.filter((i) => i.severity === 'LOW').length,
+  };
+  res.json({
+    year,
+    ok: issues.length === 0,
+    counts,
+    issues: issues.sort((a, b) => ({ HIGH: 0, MEDIUM: 1, LOW: 2 }[a.severity] - { HIGH: 0, MEDIUM: 1, LOW: 2 }[b.severity])),
+  });
+}
+
 export async function exportTaxReport(req: AuthRequest, res: Response) {
   const userId = req.userId!;
   const year = Number(req.query.year) || new Date().getFullYear();

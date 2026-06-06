@@ -1,9 +1,26 @@
 import { useEffect, useState } from 'react';
-import { X, Plus, Wrench, AlertTriangle } from 'lucide-react';
+import { X, Plus, Sparkles, Scale } from 'lucide-react';
 import api from '../api/client';
 import { MaintenanceRequest, Property } from '../types';
 
 type StatusFilter = 'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+
+interface Analysis {
+  responsibility: 'LANDLORD' | 'TENANT' | 'SHARED' | 'UNCLEAR';
+  responsibilityLabel: string;
+  costMin: number;
+  costMax: number;
+  reasoning: string;
+  tips: string;
+  aiAnalyzed: boolean;
+}
+
+const RESP_CLASS: Record<string, string> = {
+  LANDLORD: 'bg-blue-50 text-blue-600 border-blue-200',
+  TENANT: 'bg-amber-50 text-amber-600 border-amber-200',
+  SHARED: 'bg-purple-50 text-purple-600 border-purple-200',
+  UNCLEAR: 'bg-gray-50 text-gray-500 border-gray-200',
+};
 
 export default function Maintenance() {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
@@ -12,8 +29,20 @@ export default function Maintenance() {
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<MaintenanceRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyses, setAnalyses] = useState<Record<string, Analysis>>({});
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, [filter]);
+
+  async function analyze(id: string) {
+    setAnalyzing(id);
+    try {
+      const r = await api.post(`/maintenance/${id}/analyze`);
+      setAnalyses((a) => ({ ...a, [id]: r.data }));
+    } finally {
+      setAnalyzing(null);
+    }
+  }
 
   async function fetchAll() {
     setLoading(true);
@@ -89,7 +118,32 @@ export default function Maintenance() {
                   {r.tenant && <div className="text-xs text-gray-400 mt-1">報修人：{r.tenant.name}</div>}
                   <div className="text-xs text-gray-400">{new Date(r.reportedAt).toLocaleDateString('zh-TW')}</div>
                 </div>
+                <button
+                  onClick={() => analyze(r.id)}
+                  disabled={analyzing === r.id}
+                  className="btn-secondary text-xs flex items-center gap-1 flex-shrink-0 disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-brand" />
+                  {analyzing === r.id ? '分析中...' : 'AI 分析'}
+                </button>
               </div>
+
+              {analyses[r.id] && (
+                <div className="mt-2 bg-warm rounded-xl px-3 py-2.5">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="flex items-center gap-1 text-xs font-medium text-gray-600"><Scale className="w-3.5 h-3.5" />修繕責任</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full border ${RESP_CLASS[analyses[r.id].responsibility]}`}>
+                      {analyses[r.id].responsibilityLabel}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      估價 NT${analyses[r.id].costMin.toLocaleString()}–{analyses[r.id].costMax.toLocaleString()}
+                    </span>
+                    {!analyses[r.id].aiAnalyzed && <span className="text-xs text-gray-400">（規則初判）</span>}
+                  </div>
+                  <div className="text-xs text-gray-600">{analyses[r.id].reasoning}</div>
+                  {analyses[r.id].tips && <div className="text-xs text-gray-500 mt-1">💡 {analyses[r.id].tips}</div>}
+                </div>
+              )}
 
               {r.status !== 'COMPLETED' && r.status !== 'CANCELLED' && (
                 <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">

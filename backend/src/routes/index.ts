@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { requireTenant } from '../middleware/tenantAuth';
 import { register, login, me } from '../controllers/authController';
 import { getDashboard } from '../controllers/dashboardController';
 import { getProperties, createProperty, updateProperty, deleteProperty } from '../controllers/propertyController';
@@ -17,6 +18,28 @@ import { getCalendarEvents } from '../controllers/calendarController';
 import { getCollectionWorkbench, getFinanceOverview } from '../controllers/collectionWorkbenchController';
 import { getROIAnalysis } from '../controllers/roiController';
 import { exportTaxReport } from '../controllers/taxExportController';
+import {
+  getPayments, getUnmatchedPayments, matchPayment, getContractVirtualAccount,
+  paymentWebhook, simulatePayment, getMatchSuggestions,
+} from '../controllers/paymentController';
+import { checkCompliance } from '../controllers/contractController';
+import { analyzeMaintenanceRequest } from '../controllers/maintenanceController';
+import { taxPrecheck } from '../controllers/taxExportController';
+import { assistantChat, getFinancialInsights, draftClauses } from '../controllers/aiController';
+import {
+  getHandovers, createHandover, updateHandover, sendHandoverForConfirmation,
+  getHandoverByToken, confirmHandoverByToken, tenantHandovers, tenantConfirmHandover,
+} from '../controllers/handoverController';
+import {
+  previewUtilitySplit, createUtilityBill, getUtilityBills, billUtilityToTenants,
+} from '../controllers/utilityBillController';
+import { getTenantCredit, getTenantsCreditOverview, getMyCredit } from '../controllers/creditController';
+import { getRentComps, getUnitPricing } from '../controllers/rentCompsController';
+import { tenantLogin, tenantAuthConfig } from '../controllers/tenantAuthController';
+import {
+  tenantMe, tenantContracts, tenantRentRecords, tenantPaymentInfo,
+  tenantMaintenanceList, tenantCreateMaintenance,
+} from '../controllers/tenantPortalController';
 
 const router = Router();
 
@@ -52,6 +75,16 @@ router.get('/contracts', requireAuth, getContracts);
 router.post('/contracts', requireAuth, createContract);
 router.put('/contracts/:id', requireAuth, updateContract);
 router.post('/contracts/:id/sign-invite', requireAuth, generateSignInvite);
+router.post('/contracts/:id/compliance-check', requireAuth, checkCompliance);
+
+// Handover（點交相冊）
+router.get('/contracts/:contractId/handovers', requireAuth, getHandovers);
+router.post('/contracts/:contractId/handovers', requireAuth, createHandover);
+router.put('/handovers/:id', requireAuth, updateHandover);
+router.post('/handovers/:id/send', requireAuth, sendHandoverForConfirmation);
+// Public handover confirmation (no auth)
+router.get('/handovers/confirm/:token', getHandoverByToken);
+router.post('/handovers/confirm/:token', confirmHandoverByToken);
 // Public signing endpoints (no auth)
 router.get('/contracts/sign/:token', getContractByToken);
 router.post('/contracts/sign/:token', signContractByToken);
@@ -77,6 +110,7 @@ router.post('/rent-records/:id/remind', requireAuth, sendReminder);
 router.get('/maintenance', requireAuth, getMaintenanceRequests);
 router.post('/maintenance', requireAuth, createMaintenanceRequest);
 router.put('/maintenance/:id', requireAuth, updateMaintenanceRequest);
+router.post('/maintenance/:id/analyze', requireAuth, analyzeMaintenanceRequest);
 
 // Expenses
 router.get('/expenses', requireAuth, getExpenses);
@@ -93,6 +127,26 @@ router.get('/collection-workbench', requireAuth, getCollectionWorkbench);
 router.get('/finance-overview', requireAuth, getFinanceOverview);
 router.get('/roi', requireAuth, getROIAnalysis);
 router.get('/tax-export', requireAuth, exportTaxReport);
+router.get('/tax-export/precheck', requireAuth, taxPrecheck);
+
+// Utility bills（水電費分攤）
+router.get('/utility-bills', requireAuth, getUtilityBills);
+router.post('/utility-bills/preview', requireAuth, previewUtilitySplit);
+router.post('/utility-bills', requireAuth, createUtilityBill);
+router.post('/utility-bills/:id/bill', requireAuth, billUtilityToTenants);
+
+// Rent comps（在地租金行情）
+router.get('/rent-comps', requireAuth, getRentComps);
+router.get('/units/:unitId/pricing', requireAuth, getUnitPricing);
+
+// Tenant credit（租客信用分）
+router.get('/tenant-credit', requireAuth, getTenantsCreditOverview);
+router.get('/tenants/:id/credit', requireAuth, getTenantCredit);
+
+// AI（房東助理 / 財務洞察 / 合約條款草擬）
+router.post('/ai/assistant', requireAuth, assistantChat);
+router.get('/ai/insights', requireAuth, getFinancialInsights);
+router.post('/ai/draft-clauses', requireAuth, draftClauses);
 
 // Listings (vacant units)
 router.get('/listings/vacant', requireAuth, getVacantUnits);
@@ -100,11 +154,34 @@ router.post('/listings/units/:unitId', requireAuth, addListing);
 router.put('/listings/:id', requireAuth, updateListing);
 router.delete('/listings/:id', requireAuth, deleteListing);
 
+// Payments / 金流自動對帳
+router.get('/payments', requireAuth, getPayments);
+router.get('/payments/unmatched', requireAuth, getUnmatchedPayments);
+router.get('/payments/:id/suggestions', requireAuth, getMatchSuggestions);
+router.post('/payments/:id/match', requireAuth, matchPayment);
+router.post('/payments/simulate', requireAuth, simulatePayment);
+router.get('/contracts/:contractId/virtual-account', requireAuth, getContractVirtualAccount);
+// Webhook（對外，無 JWT）
+router.post('/payments/webhook/:provider', paymentWebhook);
+
 // LINE
 router.post('/line/webhook', webhook);
 router.get('/line/binding', requireAuth, getLandlordBinding);
 router.post('/line/binding/generate', requireAuth, generateLandlordBindingCode);
 router.delete('/line/binding', requireAuth, unbindLandlord);
 router.get('/line/tenants', requireAuth, getTenantBindings);
+
+// ── 租客端 Portal（獨立 JWT，kind=tenant）──────────────────────────
+router.get('/tenant/auth/config', tenantAuthConfig);
+router.post('/tenant/auth/login', tenantLogin);
+router.get('/tenant/me', requireTenant, tenantMe);
+router.get('/tenant/contracts', requireTenant, tenantContracts);
+router.get('/tenant/rent-records', requireTenant, tenantRentRecords);
+router.get('/tenant/payment-info', requireTenant, tenantPaymentInfo);
+router.get('/tenant/maintenance', requireTenant, tenantMaintenanceList);
+router.post('/tenant/maintenance', requireTenant, tenantCreateMaintenance);
+router.get('/tenant/handovers', requireTenant, tenantHandovers);
+router.post('/tenant/handovers/:id/confirm', requireTenant, tenantConfirmHandover);
+router.get('/tenant/credit', requireTenant, getMyCredit);
 
 export default router;

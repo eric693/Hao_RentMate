@@ -1,9 +1,25 @@
 import { useEffect, useState } from 'react';
-import { X, Plus, Search, MessageCircle, Phone, Mail, Home, CheckCircle2, ChevronRight, History } from 'lucide-react';
+import { X, Plus, Search, MessageCircle, Phone, Mail, Home, CheckCircle2, History, Gauge, Users } from 'lucide-react';
 import api from '../api/client';
 import { Tenant, Property, Contract, RentRecord } from '../types';
 
 type FilterType = 'all' | 'active' | 'no_contract' | 'line_bound';
+
+interface CreditOverview {
+  tenantId: string;
+  score: number;
+  grade: string;
+  onTimeRate: number;
+  totalRecords: number;
+  crossLandlord: boolean;
+}
+const GRADE_CLASS: Record<string, string> = {
+  'A+': 'bg-green-100 text-green-700',
+  A: 'bg-green-100 text-green-700',
+  B: 'bg-blue-100 text-blue-700',
+  C: 'bg-amber-100 text-amber-700',
+  D: 'bg-red-100 text-red-600',
+};
 
 export default function Tenants() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -14,20 +30,24 @@ export default function Tenants() {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editTenant, setEditTenant] = useState<Tenant | null>(null);
+  const [creditTenant, setCreditTenant] = useState<Tenant | null>(null);
+  const [credits, setCredits] = useState<Record<string, CreditOverview>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchAll(); }, []);
 
   async function fetchAll() {
     setLoading(true);
-    const [t, p, c] = await Promise.all([
+    const [t, p, c, cr] = await Promise.all([
       api.get('/tenants'),
       api.get('/properties'),
       api.get('/contracts'),
+      api.get('/tenant-credit'),
     ]);
     setTenants(t.data);
     setProperties(p.data);
     setContracts(c.data);
+    setCredits(Object.fromEntries((cr.data as CreditOverview[]).map((x) => [x.tenantId, x])));
     setLoading(false);
   }
 
@@ -130,6 +150,15 @@ export default function Tenants() {
                             <CheckCircle2 className="w-3 h-3" />LINE
                           </span>
                         )}
+                        {credits[tenant.id] && credits[tenant.id].totalRecords > 0 && (
+                          <button
+                            onClick={() => setCreditTenant(tenant)}
+                            className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full ${GRADE_CLASS[credits[tenant.id].grade] ?? 'bg-gray-100 text-gray-500'}`}
+                          >
+                            <Gauge className="w-3 h-3" />信用 {credits[tenant.id].grade}
+                            {credits[tenant.id].crossLandlord && <Users className="w-3 h-3" />}
+                          </button>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
                         <Phone className="w-3 h-3" />{tenant.phone}
@@ -192,6 +221,68 @@ export default function Tenants() {
       {showAdd && <TenantModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); fetchAll(); }} />}
       {editTenant && <TenantModal tenant={editTenant} onClose={() => setEditTenant(null)} onSaved={() => { setEditTenant(null); fetchAll(); }} />}
       {historyTenant && <TenantHistoryDrawer tenant={historyTenant} onClose={() => setHistoryTenant(null)} />}
+      {creditTenant && <CreditModal tenant={creditTenant} onClose={() => setCreditTenant(null)} />}
+    </div>
+  );
+}
+
+function CreditModal({ tenant, onClose }: { tenant: Tenant; onClose: () => void }) {
+  const [data, setData] = useState<{
+    score: number; grade: string; onTimeRate: number; avgDelayDays: number;
+    totalRecords: number; crossLandlord: boolean;
+    breakdown: { onTime: number; late: number; overdue: number; partial: number };
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/tenants/${tenant.id}/credit`).then((r) => { setData(r.data); setLoading(false); });
+  }, [tenant.id]);
+
+  const scoreColor = (s: number) => (s >= 740 ? 'text-green-500' : s >= 670 ? 'text-blue-500' : s >= 580 ? 'text-amber-500' : 'text-red-500');
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-5 w-full max-w-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg flex items-center gap-2"><Gauge className="w-5 h-5 text-brand" />租客信用分</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">{tenant.name}</p>
+
+        {loading ? (
+          <div className="text-center py-10 text-gray-400 text-sm">計算中...</div>
+        ) : data && (
+          <>
+            <div className="flex items-center gap-4 bg-warm rounded-2xl p-4 mb-4">
+              <div className="text-center">
+                <div className={`text-4xl font-bold ${scoreColor(data.score)}`}>{data.score}</div>
+                <div className={`text-xs font-semibold mt-0.5 inline-block px-2 py-0.5 rounded-full ${GRADE_CLASS[data.grade] ?? 'bg-gray-100 text-gray-500'}`}>等級 {data.grade}</div>
+              </div>
+              <div className="flex-1 text-xs text-gray-600 space-y-1">
+                <div className="flex justify-between"><span className="text-gray-400">準時繳納率</span><span className="font-medium">{Math.round(data.onTimeRate * 100)}%</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">平均逾期</span><span className="font-medium">{data.avgDelayDays.toFixed(1)} 天</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">納入紀錄</span><span className="font-medium">{data.totalRecords} 筆</span></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 mb-4 text-center">
+              <div><div className="text-lg font-bold text-green-500">{data.breakdown.onTime}</div><div className="text-xs text-gray-400">準時</div></div>
+              <div><div className="text-lg font-bold text-amber-500">{data.breakdown.late}</div><div className="text-xs text-gray-400">遲繳</div></div>
+              <div><div className="text-lg font-bold text-orange-500">{data.breakdown.partial}</div><div className="text-xs text-gray-400">部分</div></div>
+              <div><div className="text-lg font-bold text-red-500">{data.breakdown.overdue}</div><div className="text-xs text-gray-400">逾期</div></div>
+            </div>
+
+            {data.crossLandlord && (
+              <div className="flex items-center gap-1.5 text-xs text-brand bg-brand/5 rounded-lg px-3 py-2">
+                <Users className="w-3.5 h-3.5" />此分數已整合該租客在多位房東的繳租歷史
+              </div>
+            )}
+            {data.totalRecords === 0 && (
+              <div className="text-xs text-gray-400 text-center">尚無已到期的繳租紀錄，分數為中性基準。</div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

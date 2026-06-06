@@ -26,13 +26,15 @@ model Property {
   userId        String
   name          String
   address       String
+  district      String?  // 行政區（租金行情分群用，未填則由 address 推斷）
   description   String?
   purchasePrice Decimal? @db.Decimal(14, 2)
   createdAt     DateTime @default(now())
 
-  user     User      @relation(fields: [userId], references: [id])
-  units    Unit[]
-  expenses Expense[]
+  user         User          @relation(fields: [userId], references: [id])
+  units        Unit[]
+  expenses     Expense[]
+  utilityBills UtilityBill[]
 }
 
 model Unit {
@@ -43,6 +45,8 @@ model Unit {
   type        String?
   monthlyRent Decimal    @db.Decimal(10, 2)
   status      UnitStatus @default(VACANT)
+  areaPing    Decimal?   @db.Decimal(6, 2) // 坪數（水電分攤、租金行情用）
+  occupants   Int?       // 居住人數（水電分攤人頭法用）
   description String?
   createdAt   DateTime   @default(now())
 
@@ -51,6 +55,7 @@ model Unit {
   maintenanceRequests MaintenanceRequest[]
   expenses            Expense[]
   listings            ListingRecord[]
+  utilityAllocations  UtilityAllocation[]
 }
 
 enum UnitStatus {
@@ -76,6 +81,7 @@ model Tenant {
   user                User                 @relation(fields: [userId], references: [id])
   contracts           Contract[]
   maintenanceRequests MaintenanceRequest[]
+  creditSnapshot      TenantCreditSnapshot?
 }
 
 model Contract {
@@ -95,10 +101,17 @@ model Contract {
   signerName    String?
   createdAt     DateTime       @default(now())
 
-  unit          Unit          @relation(fields: [unitId], references: [id])
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  rentRecords   RentRecord[]
-  depositRefund DepositRefund?
+  // 合規檢查結果（內政部定型化契約應記載/不得記載事項）
+  complianceResult    Json?
+  complianceCheckedAt DateTime?
+
+  unit           Unit            @relation(fields: [unitId], references: [id])
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  rentRecords    RentRecord[]
+  depositRefund  DepositRefund?
+  virtualAccount VirtualAccount?
+  payments       Payment[]
+  handovers      Handover[]
 }
 
 model DepositRefund {
@@ -156,6 +169,7 @@ model RentRecord {
 
   contract      Contract      @relation(fields: [contractId], references: [id])
   reminderLogs  ReminderLog[]
+  payments      Payment[]
 
   @@unique([contractId, year, month])
 }
@@ -205,6 +219,11 @@ model MaintenanceRequest {
   resolvedAt  DateTime?
   cost        Decimal?            @db.Decimal(10, 2)
   notes       String?
+  photos      String[]            @default([])
+  category    String?
+  aiClassified Boolean            @default(false)
+  aiAnalysis  Json?               // { responsibility, costMin, costMax, reasoning, tips }
+  source      String              @default("LANDLORD") // LANDLORD | TENANT
 
   unit   Unit    @relation(fields: [unitId], references: [id])
   tenant Tenant? @relation(fields: [tenantId], references: [id])
@@ -272,4 +291,119 @@ model LineBinding {
   boundAt             DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+// ── 金流：虛擬帳號 + 自動對帳 ──────────────────────────────────
+model VirtualAccount {
+  id            String   @id @default(cuid())
+  contractId    String   @unique
+  provider      String   @default("SANDBOX") // SANDBOX | LINEPAY | BANK
+  bankCode      String   @default("000")
+  accountNumber String   @unique
+  createdAt     DateTime @default(now())
+
+  contract Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  payments Payment[]
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  contractId       String?
+  rentRecordId     String?
+  virtualAccountId String?
+  provider         String        @default("SANDBOX")
+  providerTxnId    String?       @unique
+  amount           Decimal       @db.Decimal(10, 2)
+  paidAt           DateTime      @default(now())
+  status           PaymentStatus @default(PENDING)
+  payerName        String?
+  rawPayload       Json?
+  reconciledAt     DateTime?
+  note             String?
+  createdAt        DateTime      @default(now())
+
+  contract       Contract?       @relation(fields: [contractId], references: [id])
+  rentRecord     RentRecord?     @relation(fields: [rentRecordId], references: [id])
+  virtualAccount VirtualAccount? @relation(fields: [virtualAccountId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING   // 已收到入帳但尚未處理
+  MATCHED   // 已自動對帳銷帳
+  UNMATCHED // 無法自動匹配，需人工處理
+  MANUAL    // 人工指定銷帳
+}
+
+// ── 點交相冊：搬入/搬出狀況存證，連動押金扣款 ──────────────────────
+model Handover {
+  id             String         @id @default(cuid())
+  contractId     String
+  type           HandoverType
+  status         HandoverStatus @default(DRAFT)
+  // items: [{ id, area, description, condition, photos: string[] }]
+  items          Json           @default("[]")
+  // meterReadings: { electricity, water, gas }
+  meterReadings  Json?
+  note           String?
+  confirmToken   String?        @unique // 租客 LINE/連結確認用
+  tenantSignedAt DateTime?
+  signerName     String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+enum HandoverType {
+  MOVE_IN
+  MOVE_OUT
+}
+
+enum HandoverStatus {
+  DRAFT          // 房東建立中
+  PENDING_TENANT // 待租客確認
+  CONFIRMED      // 雙方已確認
+}
+
+// ── 水電費分攤：一張總單拆給多間房 ────────────────────────────────
+model UtilityBill {
+  id          String          @id @default(cuid())
+  propertyId  String
+  category    ExpenseCategory // WATER | ELECTRICITY | GAS
+  periodStart DateTime
+  periodEnd   DateTime
+  totalAmount Decimal         @db.Decimal(10, 2)
+  method      String          @default("EVEN") // EVEN | AREA | HEADCOUNT | USAGE
+  note        String?
+  createdAt   DateTime        @default(now())
+
+  property    Property            @relation(fields: [propertyId], references: [id])
+  allocations UtilityAllocation[]
+}
+
+model UtilityAllocation {
+  id            String   @id @default(cuid())
+  utilityBillId String
+  unitId        String
+  amount        Decimal  @db.Decimal(10, 2)
+  basis         Decimal? @db.Decimal(10, 2) // 分攤依據值（用量/坪數/人頭）
+  billed        Boolean  @default(false)    // 是否已開帳給租客
+
+  utilityBill UtilityBill @relation(fields: [utilityBillId], references: [id], onDelete: Cascade)
+  unit        Unit        @relation(fields: [unitId], references: [id])
+}
+
+// ── 租客信用分快照（依繳租紀錄計算，跨房東以身分證字號聚合）──────────
+model TenantCreditSnapshot {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  score        Int      // 300-850
+  grade        String   // A+ A B C D
+  onTimeRate   Float    // 準時繳納比例 0-1
+  avgDelayDays Float    // 平均逾期天數
+  totalRecords Int      // 納入計算的繳租筆數
+  crossLandlord Boolean @default(false) // 是否含跨房東歷史
+  computedAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }

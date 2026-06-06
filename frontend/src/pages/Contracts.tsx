@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { X, Plus, Search, AlertTriangle, Calendar, User, Home, FileSignature, CheckCircle2, Send, Copy, Check, Wallet } from 'lucide-react';
+import { X, Plus, Search, AlertTriangle, Calendar, User, Home, FileSignature, CheckCircle2, Send, Copy, Check, Wallet, ShieldCheck, ClipboardCheck } from 'lucide-react';
 import api from '../api/client';
 import { Contract, Property, Tenant, Unit } from '../types';
 import DepositRefundModal from '../components/DepositRefundModal';
+import ComplianceModal from '../components/ComplianceModal';
+import HandoverModal from '../components/HandoverModal';
 
 type FilterType = 'all' | 'active' | 'expiring' | 'expired' | 'terminated';
 
@@ -18,6 +20,8 @@ export default function Contracts() {
   const [signingId, setSigningId] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [depositModal, setDepositModal] = useState<Contract | null>(null);
+  const [complianceModal, setComplianceModal] = useState<Contract | null>(null);
+  const [handoverModal, setHandoverModal] = useState<Contract | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -259,6 +263,18 @@ export default function Contracts() {
                       </button>
                     )}
                     <button
+                      onClick={() => setHandoverModal(c)}
+                      className="text-xs px-3 py-1.5 border border-brand/30 rounded-lg text-brand hover:bg-brand/5 transition-colors flex items-center gap-1"
+                    >
+                      <ClipboardCheck className="w-3 h-3" />點交
+                    </button>
+                    <button
+                      onClick={() => setComplianceModal(c)}
+                      className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1"
+                    >
+                      <ShieldCheck className="w-3 h-3" />合規檢查
+                    </button>
+                    <button
                       onClick={() => setDepositModal(c)}
                       className="text-xs px-3 py-1.5 border border-orange-200 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors flex items-center gap-1"
                     >
@@ -328,6 +344,14 @@ export default function Contracts() {
           onClose={() => setDepositModal(null)}
           onSaved={() => { fetchAll(); }}
         />
+      )}
+
+      {complianceModal && (
+        <ComplianceModal contract={complianceModal} onClose={() => setComplianceModal(null)} />
+      )}
+
+      {handoverModal && (
+        <HandoverModal contract={handoverModal} onClose={() => setHandoverModal(null)} />
       )}
     </div>
   );

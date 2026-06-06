@@ -14,6 +14,9 @@ frontend/node_modules/
 backend/.env
 frontend/.env
 
+# User uploads (maintenance photos etc.)
+backend/uploads/
+
 # Logs
 *.log
 npm-debug.log*

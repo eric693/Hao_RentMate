@@ -16,14 +16,17 @@ import {
   Bell,
   Megaphone,
   TrendingUp,
+  LineChart,
 } from 'lucide-react';
 
 const FINANCE_ITEMS = [
   { to: '/finance', label: '財務總覽', exact: true },
   { to: '/finance/workbench', label: '收款工作台', exact: false },
   { to: '/finance/rent', label: '租金管理', exact: false },
+  { to: '/finance/reconcile', label: '對帳中心', exact: false },
   { to: '/finance/utilities', label: '水電帳單', exact: false },
   { to: '/finance/expenses', label: '支出記錄', exact: false },
+  { to: '/finance/tax', label: '租賃報稅', exact: false },
 ];
 
 export default function Layout() {
@@ -133,6 +136,7 @@ export default function Layout() {
 
           <SidebarLink to="/listings" label="空房刊登" icon={Megaphone} />
           <SidebarLink to="/roi" label="投報分析" icon={TrendingUp} />
+          <SidebarLink to="/market" label="租金行情" icon={LineChart} />
           <SidebarLink to="/maintenance" label="報修" icon={Wrench} />
           <SidebarLink to="/contracts" label="合約" icon={FileText} />
           <SidebarLink to="/settings" label="設定" icon={Settings} />

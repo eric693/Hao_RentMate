@@ -3,7 +3,33 @@ import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../app';
 import { generateMonthlyRentRecords } from '../services/rentService';
 import { sendTenantMessage } from '../services/lineService';
+import { checkContractCompliance } from '../services/aiService';
 import crypto from 'crypto';
+
+// 合約合規檢查：依內政部應記載/不得記載事項，產生報告並存入 complianceResult
+export async function checkCompliance(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  const contract = await prisma.contract.findFirst({
+    where: { id, unit: { property: { userId: req.userId! } } },
+  });
+  if (!contract) {
+    res.status(404).json({ error: '找不到合約' });
+    return;
+  }
+  const result = await checkContractCompliance({
+    monthlyRent: Number(contract.monthlyRent),
+    depositAmount: Number(contract.depositAmount),
+    startDate: contract.startDate,
+    endDate: contract.endDate,
+    rentDueDay: contract.rentDueDay,
+    notes: contract.notes,
+  });
+  await prisma.contract.update({
+    where: { id },
+    data: { complianceResult: result as any, complianceCheckedAt: new Date() },
+  });
+  res.json(result);
+}
 
 export async function getContracts(req: AuthRequest, res: Response) {
   const userId = req.userId!;
