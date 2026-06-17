@@ -1,10 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDashboard = getDashboard;
+exports.computeDashboard = computeDashboard;
 const app_1 = require("../app");
 const client_1 = require("@prisma/client");
 async function getDashboard(req, res) {
-    const userId = req.userId;
+    res.json(await computeDashboard(req.userId));
+}
+async function computeDashboard(userId) {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -86,7 +89,7 @@ async function getDashboard(req, res) {
         : '本週無待處理事項，一切運作正常。';
     const lineBinding = await app_1.prisma.lineBinding.findUnique({ where: { userId } });
     const autoNotifyEnabled = !!(lineBinding?.lineUserId && !lineBinding.lineUserId.startsWith('pending_'));
-    res.json({
+    return {
         rentSummary: {
             year,
             month,
@@ -111,5 +114,5 @@ async function getDashboard(req, res) {
         trendData,
         expiringContracts,
         overdueRecords,
-    });
+    };
 }

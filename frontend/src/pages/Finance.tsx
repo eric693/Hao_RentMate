@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import api from '../api/client';
+import ExportButtons from '../components/ExportButtons';
 
 interface FinanceOverview {
   year: number;
@@ -90,6 +91,7 @@ export default function Finance() {
           <p className="text-xs text-gray-400 mt-0.5">{year} 年 {month} 月的收支彙整與趨勢分析</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
+          <ExportButtons type="finance-overview" />
           <button
             onClick={() => downloadTaxReport(year)}
             disabled={exporting}
@@ -113,7 +115,7 @@ export default function Finance() {
         <>
           {/* 6 KPI cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <KpiCard label="本月應收" value={fmt(data.current.total)} sub={`共 ${data.current.total > 0 ? '數' : '0'} 筆合約`} />
+            <KpiCard label="本月應收" value={fmt(data.current.total)} sub={`收款率 ${data.current.rate}%`} />
             <KpiCard label="已收金額" value={fmt(data.current.collected)} mom={momArrow(data.mom.collected)} accent="text-brand" />
             <KpiCard label="待收金額" value={fmt(data.current.pending)} mom={momArrow(data.mom.pending)} accent={data.current.pending > 0 ? 'text-amber-500' : ''} />
             <KpiCard label="逾期款項" value={fmt(data.current.overdue)} sub={data.current.overdueCount > 0 ? `${data.current.overdueCount} 筆逾期` : '無逾期'} accent={data.current.overdue > 0 ? 'text-red-500' : ''} />

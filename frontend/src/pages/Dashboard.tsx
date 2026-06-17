@@ -8,6 +8,7 @@ import {
 import api from '../api/client';
 import { DashboardData } from '../types';
 import CalendarModal from '../components/CalendarModal';
+import ExportButtons from '../components/ExportButtons';
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -34,6 +35,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
         <h1 className="text-xl font-bold text-gray-800">總覽</h1>
         <div className="flex items-center gap-3">
+          <ExportButtons type="dashboard" />
           <button onClick={() => setShowCalendar(true)} className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:border-brand hover:text-brand transition-colors">
             <Calendar className="w-4 h-4" />
             {now.getFullYear()} 年 {now.getMonth() + 1} 月
@@ -51,7 +53,7 @@ export default function Dashboard() {
           <KpiCard
             label="本月已收"
             value={`NT$${rentSummary.collectedRent.toLocaleString()}`}
-            sub={`較上月 ${rentSummary.collectionRate >= 50 ? '+' : ''}${rentSummary.collectionRate}%`}
+            sub={`收款率 ${rentSummary.collectionRate}%`}
             subColor="text-gray-400"
             icon={<CircleDollarSign className="w-4 h-4 text-green-600" />}
             iconBg="bg-green-50"
@@ -59,7 +61,7 @@ export default function Dashboard() {
           <KpiCard
             label="待收金額"
             value={`NT$${pendingAmount.toLocaleString()}`}
-            sub="與上月持平"
+            sub={`${rentSummary.pendingCount + rentSummary.overdueCount} 筆未收`}
             subColor={pendingAmount > 0 ? 'text-orange-500' : 'text-gray-400'}
             icon={<ClipboardList className="w-4 h-4 text-orange-500" />}
             iconBg="bg-orange-50"
@@ -68,7 +70,7 @@ export default function Dashboard() {
           <KpiCard
             label="入住率"
             value={`${occupancy.rate}%`}
-            sub={`${occupancy.occupied} / ${occupancy.total} 間 · 較上月 +${occupancy.rate > 70 ? '7' : '0'}%`}
+            sub={`${occupancy.occupied} / ${occupancy.total} 間已出租`}
             subColor="text-gray-400"
             icon={<Home className="w-4 h-4 text-blue-500" />}
             iconBg="bg-blue-50"

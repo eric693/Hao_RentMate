@@ -4,6 +4,8 @@ exports.exportData = exportData;
 const app_1 = require("../app");
 const exportService_1 = require("../services/exportService");
 const roiController_1 = require("./roiController");
+const dashboardController_1 = require("./dashboardController");
+const collectionWorkbenchController_1 = require("./collectionWorkbenchController");
 const money = (v) => (v === null || v === undefined ? '' : `NT$${Number(v).toLocaleString()}`);
 const date = (v) => (v ? new Date(v).toLocaleDateString('zh-TW') : '');
 const CAT = { WATER: '水費', ELECTRICITY: '電費', GAS: '瓦斯費', MANAGEMENT: '管理費', REPAIR: '維修費', INSURANCE: '保險', INTERNET: '網路', OTHER: '其他' };
@@ -172,6 +174,51 @@ const DATASETS = {
             }));
         },
     },
+    dashboard: {
+        module: '', title: '營運總覽摘要',
+        columns: [{ key: 'item', label: '項目', width: 1.5 }, { key: 'value', label: '數值', width: 2 }],
+        fetch: async (userId) => {
+            const d = await (0, dashboardController_1.computeDashboard)(userId);
+            return [
+                { item: '統計月份', value: `${d.rentSummary.year} 年 ${d.rentSummary.month} 月` },
+                { item: '本月應收租金', value: money(d.rentSummary.totalRent) },
+                { item: '本月已收租金', value: money(d.rentSummary.collectedRent) },
+                { item: '收款率', value: `${d.rentSummary.collectionRate}%` },
+                { item: '已繳筆數', value: d.rentSummary.paidCount },
+                { item: '待繳筆數', value: d.rentSummary.pendingCount },
+                { item: '逾期筆數', value: d.rentSummary.overdueCount },
+                { item: '逾期金額', value: money(d.rentSummary.overdueAmount) },
+                { item: '總房間數', value: d.occupancy.total },
+                { item: '已出租', value: d.occupancy.occupied },
+                { item: '出租率', value: `${d.occupancy.rate}%` },
+                { item: '待處理報修', value: d.pendingMaintenance },
+                { item: '待辦事項總數', value: d.totalTodos },
+                { item: '營運摘要', value: d.operationSummary },
+            ];
+        },
+    },
+    'finance-overview': {
+        module: 'finance', title: '財務總覽摘要',
+        columns: [{ key: 'item', label: '項目', width: 1.5 }, { key: 'value', label: '數值', width: 2 }],
+        fetch: async (userId) => {
+            const now = new Date();
+            const f = await (0, collectionWorkbenchController_1.computeFinanceOverview)(userId, now.getFullYear(), now.getMonth() + 1);
+            const rows = [
+                { item: '統計月份', value: `${f.year} 年 ${f.month} 月` },
+                { item: '應收租金', value: money(f.current.total) },
+                { item: '已收租金', value: money(f.current.collected) },
+                { item: '待收租金', value: money(f.current.pending) },
+                { item: '逾期租金', value: money(f.current.overdue) },
+                { item: '收款率', value: `${f.current.rate}%` },
+                { item: '水電費支出', value: money(f.current.utility) },
+                { item: '其他支出', value: money(f.current.expenses) },
+                { item: '較上月已收', value: `${f.mom.collected >= 0 ? '+' : ''}${f.mom.collected}%` },
+            ];
+            for (const e of f.expenseBreakdown)
+                rows.push({ item: `支出明細－${e.label}`, value: `${money(e.amount)}（${e.pct}%）` });
+            return rows;
+        },
+    },
 };
 async function exportData(req, res) {
     const { type } = req.params;
@@ -181,8 +228,8 @@ async function exportData(req, res) {
         res.status(404).json({ error: '不支援的匯出類型' });
         return;
     }
-    // 權限：ADMIN 放行；STAFF 需具該模組權限
-    if (req.role !== 'ADMIN' && !req.permissions?.includes(ds.module)) {
+    // 權限：ADMIN 放行；空模組(如總覽)任何登入者皆可；其餘 STAFF 需具該模組權限
+    if (req.role !== 'ADMIN' && ds.module && !req.permissions?.includes(ds.module)) {
         res.status(403).json({ error: '您沒有匯出此資料的權限' });
         return;
     }

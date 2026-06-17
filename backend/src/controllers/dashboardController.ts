@@ -4,7 +4,10 @@ import { prisma } from '../app';
 import { RentStatus, MaintenanceStatus } from '@prisma/client';
 
 export async function getDashboard(req: AuthRequest, res: Response) {
-  const userId = req.userId!;
+  res.json(await computeDashboard(req.userId!));
+}
+
+export async function computeDashboard(userId: string) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -97,7 +100,7 @@ export async function getDashboard(req: AuthRequest, res: Response) {
   const lineBinding = await prisma.lineBinding.findUnique({ where: { userId } });
   const autoNotifyEnabled = !!(lineBinding?.lineUserId && !lineBinding.lineUserId.startsWith('pending_'));
 
-  res.json({
+  return {
     rentSummary: {
       year,
       month,
@@ -122,5 +125,5 @@ export async function getDashboard(req: AuthRequest, res: Response) {
     trendData,
     expiringContracts,
     overdueRecords,
-  });
+  };
 }

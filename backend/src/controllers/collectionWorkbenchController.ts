@@ -126,11 +126,13 @@ export async function getCollectionWorkbench(req: AuthRequest, res: Response) {
 }
 
 export async function getFinanceOverview(req: AuthRequest, res: Response) {
-  const userId = req.userId!;
   const now = new Date();
   const year = Number(req.query.year ?? now.getFullYear());
   const month = Number(req.query.month ?? now.getMonth() + 1);
+  res.json(await computeFinanceOverview(req.userId!, year, month));
+}
 
+export async function computeFinanceOverview(userId: string, year: number, month: number) {
   const properties = await prisma.property.findMany({ where: { userId } });
   const propertyIds = properties.map((p) => p.id);
   const units = await prisma.unit.findMany({ where: { propertyId: { in: propertyIds } } });
@@ -183,7 +185,7 @@ export async function getFinanceOverview(req: AuthRequest, res: Response) {
 
   const momPct = (cur: number, prev: number) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : 0;
 
-  res.json({
+  return {
     year, month,
     current: cur,
     previous: prev,
@@ -194,5 +196,5 @@ export async function getFinanceOverview(req: AuthRequest, res: Response) {
     },
     trend,
     expenseBreakdown,
-  });
+  };
 }

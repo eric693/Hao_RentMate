@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCollectionWorkbench = getCollectionWorkbench;
 exports.getFinanceOverview = getFinanceOverview;
+exports.computeFinanceOverview = computeFinanceOverview;
 const app_1 = require("../app");
 async function getCollectionWorkbench(req, res) {
     const userId = req.userId;
@@ -99,10 +100,12 @@ async function getCollectionWorkbench(req, res) {
     });
 }
 async function getFinanceOverview(req, res) {
-    const userId = req.userId;
     const now = new Date();
     const year = Number(req.query.year ?? now.getFullYear());
     const month = Number(req.query.month ?? now.getMonth() + 1);
+    res.json(await computeFinanceOverview(req.userId, year, month));
+}
+async function computeFinanceOverview(userId, year, month) {
     const properties = await app_1.prisma.property.findMany({ where: { userId } });
     const propertyIds = properties.map((p) => p.id);
     const units = await app_1.prisma.unit.findMany({ where: { propertyId: { in: propertyIds } } });
@@ -150,7 +153,7 @@ async function getFinanceOverview(req, res) {
         pct: totalExp > 0 ? Math.round((amt / totalExp) * 100) : 0,
     })).sort((a, b) => b.amount - a.amount);
     const momPct = (cur, prev) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : 0;
-    res.json({
+    return {
         year, month,
         current: cur,
         previous: prev,
@@ -161,5 +164,5 @@ async function getFinanceOverview(req, res) {
         },
         trend,
         expenseBreakdown,
-    });
+    };
 }
