@@ -4,7 +4,7 @@ import { prisma } from '../app';
 import { generateMonthlyRentRecords } from '../services/rentService';
 import { sendTenantMessage } from '../services/lineService';
 import { checkContractCompliance } from '../services/aiService';
-import { saveBase64Image } from '../services/uploadService';
+import { savePrivateBase64Image, resolvePrivateFile } from '../services/uploadService';
 import crypto from 'crypto';
 
 // 合約合規檢查：依內政部應記載/不得記載事項，產生報告並存入 complianceResult
@@ -134,6 +134,23 @@ export async function updateContract(req: AuthRequest, res: Response) {
       status,
     },
   });
+  // 同步未繳租金記錄：月租 / 繳款日 / 租期變更時，更新 PENDING、OVERDUE 記錄的金額與繳款日，
+  // 已繳清(PAID)與部分繳款(PARTIAL)不動，以保留繳款歷史。
+  const termsChanged = monthlyRent !== undefined || rentDueDay !== undefined
+    || startDate !== undefined || endDate !== undefined;
+  if (termsChanged) {
+    const unpaid = await prisma.rentRecord.findMany({
+      where: { contractId: id, status: { in: ['PENDING', 'OVERDUE'] } },
+    });
+    for (const r of unpaid) {
+      await prisma.rentRecord.update({
+        where: { id: r.id },
+        data: { amount: updated.monthlyRent, dueDate: new Date(r.year, r.month - 1, updated.rentDueDay) },
+      });
+    }
+    await generateMonthlyRentRecords(id); // 補上因延長租期而新增的月份
+  }
+
   if (status === 'TERMINATED' || status === 'EXPIRED') {
     await prisma.unit.update({ where: { id: contract.unitId }, data: { status: 'VACANT' } });
   }
@@ -216,7 +233,7 @@ export async function signContractByToken(req: Request, res: Response) {
   if (!contract) { res.status(404).json({ error: '連結無效' }); return; }
   if (contract.signedAt) { res.status(400).json({ error: '合約已完成簽署' }); return; }
 
-  const idPath = saveBase64Image(idDocument, 'id-documents');
+  const idPath = savePrivateBase64Image(idDocument, 'id-documents');
   if (!idPath) {
     res.status(400).json({ error: '證件影像格式不支援（請上傳 JPG/PNG，單張 8MB 內）' }); return;
   }
@@ -226,4 +243,19 @@ export async function signContractByToken(req: Request, res: Response) {
     data: { signedAt: new Date(), signerName, signerIdDocument: idPath },
   });
   res.json({ signedAt: updated.signedAt, message: '簽署完成，感謝您！' });
+}
+
+// 房東檢視租客簽署時上傳的證件（需登入 + 合約模組權限，僅限該房東的合約）
+export async function getSignerIdDocument(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  const contract = await prisma.contract.findFirst({
+    where: { id, unit: { property: { userId: req.userId! } } },
+    select: { signerIdDocument: true },
+  });
+  if (!contract || !contract.signerIdDocument) {
+    res.status(404).json({ error: '查無證件' }); return;
+  }
+  const abs = resolvePrivateFile(contract.signerIdDocument);
+  if (!abs) { res.status(404).json({ error: '證件檔案不存在' }); return; }
+  res.sendFile(abs);
 }

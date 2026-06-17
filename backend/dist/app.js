@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UPLOAD_DIR = exports.prisma = void 0;
+exports.PRIVATE_UPLOAD_DIR = exports.UPLOAD_DIR = exports.prisma = void 0;
 require("dotenv/config");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -13,9 +13,12 @@ const client_1 = require("@prisma/client");
 const index_1 = __importDefault(require("./routes/index"));
 const reminderCron_1 = require("./jobs/reminderCron");
 exports.prisma = new client_1.PrismaClient();
-// 上傳目錄（維修照片等）
+// 上傳目錄（維修照片等，對外靜態服務）
 exports.UPLOAD_DIR = path_1.default.resolve(__dirname, '../uploads');
 fs_1.default.mkdirSync(path_1.default.join(exports.UPLOAD_DIR, 'maintenance'), { recursive: true });
+// 私密上傳目錄（身分證件等），不對外靜態服務，僅透過驗證後的 API 串流
+exports.PRIVATE_UPLOAD_DIR = path_1.default.resolve(__dirname, '../private-uploads');
+fs_1.default.mkdirSync(path_1.default.join(exports.PRIVATE_UPLOAD_DIR, 'id-documents'), { recursive: true });
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',

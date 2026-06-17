@@ -16,6 +16,7 @@ frontend/.env
 
 # User uploads (maintenance photos etc.)
 backend/uploads/
+backend/private-uploads/
 
 # Logs
 *.log

@@ -35,8 +35,7 @@ const tenantPortalController_1 = require("../controllers/tenantPortalController"
 const router = (0, express_1.Router)();
 // 模組權限捷徑：requireAuth + requirePermission(module)
 const can = (module) => [auth_1.requireAuth, (0, auth_1.requirePermission)(module)];
-// Auth
-router.post('/auth/register', authController_1.register);
+// Auth（公開註冊已關閉；員工帳號一律由後台「使用者管理」建立）
 router.post('/auth/login', authController_1.login);
 router.get('/auth/me', auth_1.requireAuth, authController_1.me);
 // 使用者管理（僅管理員）
@@ -69,6 +68,7 @@ router.post('/contracts', ...can('contracts'), contractController_1.createContra
 router.put('/contracts/:id', ...can('contracts'), contractController_1.updateContract);
 router.post('/contracts/:id/sign-invite', ...can('contracts'), contractController_1.generateSignInvite);
 router.post('/contracts/:id/compliance-check', ...can('contracts'), contractController_2.checkCompliance);
+router.get('/contracts/:id/id-document', ...can('contracts'), contractController_1.getSignerIdDocument);
 // Handover（點交，屬合約）
 router.get('/contracts/:contractId/handovers', ...can('contracts'), handoverController_1.getHandovers);
 router.post('/contracts/:contractId/handovers', ...can('contracts'), handoverController_1.createHandover);

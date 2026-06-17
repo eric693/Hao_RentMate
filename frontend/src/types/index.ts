@@ -91,6 +91,7 @@ export interface MaintenanceRequest {
   resolvedAt?: string;
   cost?: number;
   notes?: string;
+  photos?: string[];
   unit?: Unit & { property?: Property };
   tenant?: Tenant;
 }

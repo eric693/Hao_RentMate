@@ -170,12 +170,12 @@ export default function Layout() {
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-50 shadow-lg">
           {[
-            { to: '/', label: '總覽', icon: LayoutDashboard, exact: true },
-            { to: '/properties', label: '房務', icon: Building2, exact: false },
-            { to: '/finance', label: '帳務', icon: CreditCard, exact: false },
-            { to: '/roi', label: '投報', icon: TrendingUp, exact: false },
-            { to: '/settings', label: '設定', icon: Settings, exact: false },
-          ].map((item) => (
+            { to: '/', label: '總覽', icon: LayoutDashboard, exact: true, perm: null },
+            { to: '/properties', label: '房務', icon: Building2, exact: false, perm: 'properties' },
+            { to: '/finance', label: '帳務', icon: CreditCard, exact: false, perm: 'finance' },
+            { to: '/roi', label: '投報', icon: TrendingUp, exact: false, perm: 'roi' },
+            { to: '/settings', label: '設定', icon: Settings, exact: false, perm: 'settings' },
+          ].filter((item) => !item.perm || hasPerm(item.perm)).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { requireAuth, requirePermission, requireAdmin } from '../middleware/auth';
 import { requireTenant } from '../middleware/tenantAuth';
-import { register, login, me } from '../controllers/authController';
+import { login, me } from '../controllers/authController';
 import { listUsers, listModules, createUser, updateUser, deleteUser } from '../controllers/userController';
 import { getDashboard } from '../controllers/dashboardController';
 import { getProperties, createProperty, updateProperty, deleteProperty } from '../controllers/propertyController';
 import { getUnits, createUnit, updateUnit, deleteUnit } from '../controllers/unitController';
 import { getTenants, createTenant, updateTenant, deleteTenant, generateTenantBindingCode } from '../controllers/tenantController';
-import { getContracts, createContract, updateContract, generateSignInvite, getContractByToken, signContractByToken } from '../controllers/contractController';
+import { getContracts, createContract, updateContract, generateSignInvite, getContractByToken, signContractByToken, getSignerIdDocument } from '../controllers/contractController';
 import { getDepositRefund, upsertDepositRefund, confirmRefund, notifyTenantRefund } from '../controllers/depositRefundController';
 import { getVacantUnits, addListing, updateListing, deleteListing } from '../controllers/listingController';
 import { getReminderSettings, updateReminderSettings, triggerReminders } from '../controllers/reminderController';
@@ -47,8 +47,7 @@ const router = Router();
 // 模組權限捷徑：requireAuth + requirePermission(module)
 const can = (module: string) => [requireAuth, requirePermission(module)];
 
-// Auth
-router.post('/auth/register', register);
+// Auth（公開註冊已關閉；員工帳號一律由後台「使用者管理」建立）
 router.post('/auth/login', login);
 router.get('/auth/me', requireAuth, me);
 
@@ -87,6 +86,7 @@ router.post('/contracts', ...can('contracts'), createContract);
 router.put('/contracts/:id', ...can('contracts'), updateContract);
 router.post('/contracts/:id/sign-invite', ...can('contracts'), generateSignInvite);
 router.post('/contracts/:id/compliance-check', ...can('contracts'), checkCompliance);
+router.get('/contracts/:id/id-document', ...can('contracts'), getSignerIdDocument);
 
 // Handover（點交，屬合約）
 router.get('/contracts/:contractId/handovers', ...can('contracts'), getHandovers);

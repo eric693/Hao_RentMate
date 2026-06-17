@@ -63,6 +63,17 @@ export default function Contracts() {
     setTimeout(() => setCopiedUrl(false), 2000);
   }
 
+  async function viewIdDocument(id: string) {
+    try {
+      const res = await api.get(`/contracts/${id}/id-document`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      alert('無法載入證件');
+    }
+  }
+
   const now = Date.now();
   const thirtyDays = 30 * 86400000;
 
@@ -232,10 +243,10 @@ export default function Contracts() {
                       已電子簽署 · {new Date(c.signedAt).toLocaleDateString('zh-TW')}
                     </div>
                     {c.signerIdDocument && (
-                      <a href={c.signerIdDocument} target="_blank" rel="noreferrer"
+                      <button onClick={() => viewIdDocument(c.id)}
                         className="text-xs text-brand border border-brand/30 rounded-lg px-2.5 py-1.5 hover:bg-brand/5 transition-colors">
                         查看證件
-                      </a>
+                      </button>
                     )}
                   </div>
                 ) : (

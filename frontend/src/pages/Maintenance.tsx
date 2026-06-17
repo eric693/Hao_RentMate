@@ -117,6 +117,15 @@ export default function Maintenance() {
                   <div className="text-sm text-gray-500 mt-0.5">{r.description}</div>
                   {r.tenant && <div className="text-xs text-gray-400 mt-1">報修人：{r.tenant.name}</div>}
                   <div className="text-xs text-gray-400">{new Date(r.reportedAt).toLocaleDateString('zh-TW')}</div>
+                  {Array.isArray(r.photos) && r.photos.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {r.photos.map((src: string, i: number) => (
+                        <a key={i} href={src} target="_blank" rel="noreferrer">
+                          <img src={src} alt={`報修照片${i + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => analyze(r.id)}

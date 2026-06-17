@@ -9,9 +9,13 @@ import { startReminderJobs } from './jobs/reminderCron';
 
 export const prisma = new PrismaClient();
 
-// 上傳目錄（維修照片等）
+// 上傳目錄（維修照片等，對外靜態服務）
 export const UPLOAD_DIR = path.resolve(__dirname, '../uploads');
 fs.mkdirSync(path.join(UPLOAD_DIR, 'maintenance'), { recursive: true });
+
+// 私密上傳目錄（身分證件等），不對外靜態服務，僅透過驗證後的 API 串流
+export const PRIVATE_UPLOAD_DIR = path.resolve(__dirname, '../private-uploads');
+fs.mkdirSync(path.join(PRIVATE_UPLOAD_DIR, 'id-documents'), { recursive: true });
 
 const app = express();
 
