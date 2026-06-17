@@ -18,8 +18,15 @@ export async function webhook(req: Request, res: Response) {
     }
   }
 
+  // 對 LINE 一律回 200：單一事件處理失敗不應導致整體失敗，否則 LINE 會重試造成重複處理。
   const events: line.WebhookEvent[] = req.body.events ?? [];
-  await Promise.all(events.map((e) => handleWebhookEvent(e)));
+  await Promise.all(events.map(async (e) => {
+    try {
+      await handleWebhookEvent(e);
+    } catch (err: any) {
+      console.error('LINE event handling error:', err?.message ?? err);
+    }
+  }));
   res.json({ ok: true });
 }
 

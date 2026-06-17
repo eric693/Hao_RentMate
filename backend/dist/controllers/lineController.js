@@ -22,8 +22,16 @@ async function webhook(req, res) {
             return;
         }
     }
+    // 對 LINE 一律回 200：單一事件處理失敗不應導致整體失敗，否則 LINE 會重試造成重複處理。
     const events = req.body.events ?? [];
-    await Promise.all(events.map((e) => (0, lineService_1.handleWebhookEvent)(e)));
+    await Promise.all(events.map(async (e) => {
+        try {
+            await (0, lineService_1.handleWebhookEvent)(e);
+        }
+        catch (err) {
+            console.error('LINE event handling error:', err?.message ?? err);
+        }
+    }));
     res.json({ ok: true });
 }
 async function getLandlordBinding(req, res) {
