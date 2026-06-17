@@ -13,7 +13,7 @@ export function aiEnabled(): boolean {
   return config.ai.enabled;
 }
 
-const MAINTENANCE_CATEGORIES = ['水電', '家電', '管路漏水', '結構', '門窗鎖具', '網路', '清潔', '其他'] as const;
+const MAINTENANCE_CATEGORIES = ['水電', '鐵捲門/門禁', '消防/安全', '漏水/排水', '結構/地坪', '溫控設備', '裝卸/設備', '清潔/環境', '其他'] as const;
 
 // ── 維修分類 ─────────────────────────────────────────────────
 export interface MaintenanceClassification {
@@ -33,9 +33,9 @@ export async function classifyMaintenance(title: string, description: string): P
       system: [
         {
           type: 'text',
-          text: `你是租屋據點維修分類助理。根據租客的報修標題與描述，判斷維修類別與緊急程度。
+          text: `你是倉儲據點維修分類助理。根據承租戶的報修標題與描述，判斷維修類別與緊急程度。
 類別只能從以下擇一：${MAINTENANCE_CATEGORIES.join('、')}。
-緊急程度 priority：HIGH（漏水、停電、瓦斯、無法上鎖等安全或居住急迫問題）、MEDIUM（一般故障影響使用）、LOW（外觀、輕微、不影響使用）。
+緊急程度 priority：HIGH（漏水、停電、消防/安全、鐵捲門無法開關或上鎖、溫控失效影響貨物等急迫問題）、MEDIUM（一般故障影響使用）、LOW（外觀、輕微、不影響使用）。
 只回傳 JSON，格式：{"category":"...","priority":"HIGH|MEDIUM|LOW"}`,
           cache_control: { type: 'ephemeral' },
         },
@@ -56,15 +56,17 @@ export async function classifyMaintenance(title: string, description: string): P
 function ruleBasedClassify(title: string, description: string): MaintenanceClassification {
   const t = `${title} ${description}`;
   let category = '其他';
-  if (/漏水|滲水|積水|水管|馬桶|排水/.test(t)) category = '管路漏水';
-  else if (/停電|跳電|插座|電燈|電線|開關/.test(t)) category = '水電';
-  else if (/冷氣|冰箱|洗衣機|熱水器|電視|家電/.test(t)) category = '家電';
-  else if (/門|窗|鎖|玻璃/.test(t)) category = '門窗鎖具';
-  else if (/網路|wifi|wi-fi|網路線/i.test(t)) category = '網路';
-  else if (/牆|壁癌|裂|天花板|地板|結構/.test(t)) category = '結構';
+  if (/漏水|滲水|積水|水管|排水|淹水/.test(t)) category = '漏水/排水';
+  else if (/鐵捲門|捲門|門禁|閘門|電動門|刷卡|感應/.test(t)) category = '鐵捲門/門禁';
+  else if (/消防|滅火|警報|煙霧|逃生|安全/.test(t)) category = '消防/安全';
+  else if (/冷藏|冷凍|溫控|恆溫|製冷|壓縮機|溫度/.test(t)) category = '溫控設備';
+  else if (/堆高機|棧板|貨架|月台|裝卸|升降/.test(t)) category = '裝卸/設備';
+  else if (/停電|跳電|插座|電燈|電線|開關|配電/.test(t)) category = '水電';
+  else if (/牆|裂|天花板|地坪|地板|結構|樑柱/.test(t)) category = '結構/地坪';
+  else if (/清潔|髒|垃圾|蟲|鼠|環境/.test(t)) category = '清潔/環境';
 
   let priority: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM';
-  if (/漏水|停電|瓦斯|無法上鎖|淹水|火|危險|安全/.test(t)) priority = 'HIGH';
+  if (/漏水|停電|消防|火|危險|安全|鐵捲門|無法上鎖|淹水|溫控失效|冷藏故障/.test(t)) priority = 'HIGH';
   else if (/外觀|油漆|輕微|不影響|小/.test(t)) priority = 'LOW';
 
   return { priority, category, aiClassified: false };
