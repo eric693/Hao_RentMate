@@ -1,9 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getROIAnalysis = getROIAnalysis;
+exports.computeROI = computeROI;
 const app_1 = require("../app");
 async function getROIAnalysis(req, res) {
-    const userId = req.userId;
+    const result = await computeROI(req.userId);
+    res.json(result);
+}
+async function computeROI(userId) {
     const now = new Date();
     const yearAgo = new Date(now);
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
@@ -101,5 +105,5 @@ async function getROIAnalysis(req, res) {
         };
     });
     result.sort((a, b) => b.netIncome - a.netIncome);
-    res.json(result);
+    return result;
 }

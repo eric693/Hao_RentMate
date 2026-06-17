@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Building2, AlertCircle, Pencil, Check, X, TrendingUp } from 'lucide-react';
 import api from '../api/client';
+import ExportButtons from '../components/ExportButtons';
 
 interface UnitROI {
   id: string;
@@ -89,6 +90,7 @@ export default function ROIAnalysis() {
           <h1 className="text-xl font-bold text-gray-800">投報分析</h1>
           <p className="text-xs text-gray-400 mt-0.5">近 12 個月各房產收益、空置成本與年化投報率</p>
         </div>
+        <ExportButtons type="roi" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">

@@ -3,7 +3,11 @@ import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../app';
 
 export async function getROIAnalysis(req: AuthRequest, res: Response) {
-  const userId = req.userId!;
+  const result = await computeROI(req.userId!);
+  res.json(result);
+}
+
+export async function computeROI(userId: string) {
   const now = new Date();
   const yearAgo = new Date(now);
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
@@ -111,5 +115,5 @@ export async function getROIAnalysis(req: AuthRequest, res: Response) {
   });
 
   result.sort((a, b) => b.netIncome - a.netIncome);
-  res.json(result);
+  return result;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, Link2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import api from '../api/client';
+import ExportButtons from '../components/ExportButtons';
 
 interface Payment {
   id: string;
@@ -70,9 +71,12 @@ export default function Reconciliation() {
 
   return (
     <div className="px-6 py-6 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-800">對帳中心</h1>
-        <p className="text-xs text-gray-400 mt-0.5">自動比對付款人、金額與期數，一鍵銷帳</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">對帳中心</h1>
+          <p className="text-xs text-gray-400 mt-0.5">自動比對付款人、金額與期數，一鍵銷帳</p>
+        </div>
+        <ExportButtons type="payments" />
       </div>
 
       {loading ? (
