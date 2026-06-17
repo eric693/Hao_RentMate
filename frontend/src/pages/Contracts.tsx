@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, Plus, Search, AlertTriangle, Calendar, User, Home, FileSignature, CheckCircle2, Send, Copy, Check, Wallet, ShieldCheck, ClipboardCheck } from 'lucide-react';
 import api from '../api/client';
 import { Contract, Property, Tenant, Unit } from '../types';
+import ExportButtons from '../components/ExportButtons';
 import DepositRefundModal from '../components/DepositRefundModal';
 import ComplianceModal from '../components/ComplianceModal';
 import HandoverModal from '../components/HandoverModal';
@@ -122,9 +123,12 @@ export default function Contracts() {
           <h1 className="text-xl font-bold text-gray-800">合約管理</h1>
           <p className="text-xs text-gray-400 mt-0.5">共 {contracts.length} 份合約，{counts.active} 份進行中</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary text-sm flex items-center gap-1.5">
-          <Plus className="w-4 h-4" />新增合約
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButtons type="contracts" />
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />新增合約
+          </button>
+        </div>
       </div>
 
       {/* Expiring alerts */}

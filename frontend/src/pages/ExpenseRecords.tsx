@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { Expense } from '../types';
+import ExportButtons from '../components/ExportButtons';
 
 const EXPENSE_LABELS: Record<string, string> = {
   MANAGEMENT: '管理費', REPAIR: '維修費', OTHER: '其他', INSURANCE: '保險', INTERNET: '網路',
@@ -50,6 +51,7 @@ export default function ExpenseRecords() {
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="input text-xs py-1.5 px-2 w-16">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} 月</option>)}
           </select>
+          <ExportButtons type="expenses" />
           <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ 新增支出</button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import api from '../api/client';
 import { RentRecord } from '../types';
+import ExportButtons from '../components/ExportButtons';
 
 export default function RentManagement() {
   const now = new Date();
@@ -78,6 +79,7 @@ export default function RentManagement() {
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="input text-xs py-1.5 px-2 w-16">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} 月</option>)}
           </select>
+          <ExportButtons type="rent-records" />
         </div>
       </div>
 

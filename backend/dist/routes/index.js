@@ -6,6 +6,7 @@ const tenantAuth_1 = require("../middleware/tenantAuth");
 const authController_1 = require("../controllers/authController");
 const userController_1 = require("../controllers/userController");
 const dashboardController_1 = require("../controllers/dashboardController");
+const exportController_1 = require("../controllers/exportController");
 const propertyController_1 = require("../controllers/propertyController");
 const unitController_1 = require("../controllers/unitController");
 const tenantController_1 = require("../controllers/tenantController");
@@ -46,6 +47,8 @@ router.put('/users/:id', auth_1.requireAuth, auth_1.requireAdmin, userController
 router.delete('/users/:id', auth_1.requireAuth, auth_1.requireAdmin, userController_1.deleteUser);
 // Dashboard（任何登入者）
 router.get('/dashboard', auth_1.requireAuth, dashboardController_1.getDashboard);
+// 資料匯出（Excel / PDF）— 權限於 controller 內依資料類型檢查
+router.get('/export/:type', auth_1.requireAuth, exportController_1.exportData);
 // Properties（房務）
 router.get('/properties', ...can('properties'), propertyController_1.getProperties);
 router.post('/properties', ...can('properties'), propertyController_1.createProperty);

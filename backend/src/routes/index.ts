@@ -4,6 +4,7 @@ import { requireTenant } from '../middleware/tenantAuth';
 import { login, me } from '../controllers/authController';
 import { listUsers, listModules, createUser, updateUser, deleteUser } from '../controllers/userController';
 import { getDashboard } from '../controllers/dashboardController';
+import { exportData } from '../controllers/exportController';
 import { getProperties, createProperty, updateProperty, deleteProperty } from '../controllers/propertyController';
 import { getUnits, createUnit, updateUnit, deleteUnit } from '../controllers/unitController';
 import { getTenants, createTenant, updateTenant, deleteTenant, generateTenantBindingCode } from '../controllers/tenantController';
@@ -60,6 +61,9 @@ router.delete('/users/:id', requireAuth, requireAdmin, deleteUser);
 
 // Dashboard（任何登入者）
 router.get('/dashboard', requireAuth, getDashboard);
+
+// 資料匯出（Excel / PDF）— 權限於 controller 內依資料類型檢查
+router.get('/export/:type', requireAuth, exportData);
 
 // Properties（房務）
 router.get('/properties', ...can('properties'), getProperties);

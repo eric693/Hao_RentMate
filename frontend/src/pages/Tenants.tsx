@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, Plus, Search, MessageCircle, Phone, Mail, Home, CheckCircle2, History, Gauge, Users } from 'lucide-react';
 import api from '../api/client';
 import { Tenant, Property, Contract, RentRecord } from '../types';
+import ExportButtons from '../components/ExportButtons';
 
 type FilterType = 'all' | 'active' | 'no_contract' | 'line_bound';
 
@@ -87,9 +88,12 @@ export default function Tenants() {
           <h1 className="text-xl font-bold text-gray-800">租客管理</h1>
           <p className="text-xs text-gray-400 mt-0.5">共 {tenants.length} 位租客</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary text-sm flex items-center gap-1.5">
-          <Plus className="w-4 h-4" />新增租客
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButtons type="tenants" />
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />新增租客
+          </button>
+        </div>
       </div>
 
       {/* Filters + Search */}

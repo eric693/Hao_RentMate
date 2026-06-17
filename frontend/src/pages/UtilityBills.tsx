@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Droplets, Zap, Flame, Building2, Split, Send, X } from 'lucide-react';
 import api from '../api/client';
 import { Expense, Property } from '../types';
+import ExportButtons from '../components/ExportButtons';
 
 interface Allocation { unitId: string; unitNumber: string; amount: number; basis: number | null }
 interface UtilityBill {
@@ -87,6 +88,7 @@ export default function UtilityBills() {
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="input text-xs py-1.5 px-2 w-16">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} 月</option>)}
           </select>
+          <ExportButtons type="utility-bills" />
           <button onClick={() => setShowSplit(true)} className="btn-secondary text-sm flex items-center gap-1">
             <Split className="w-4 h-4" />費用分攤
           </button>
