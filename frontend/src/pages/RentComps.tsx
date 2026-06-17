@@ -70,10 +70,10 @@ export default function RentComps() {
       <div className="card mb-6">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp className="w-4 h-4 text-brand" />
-          <span className="font-semibold text-gray-800 text-sm">我的房間定價健檢</span>
+          <span className="font-semibold text-gray-800 text-sm">我的倉庫定價健檢</span>
         </div>
         <select value={unitId} onChange={(e) => checkPricing(e.target.value)} className="input mb-3">
-          <option value="">選擇房間查看定價建議...</option>
+          <option value="">選擇倉庫查看定價建議...</option>
           {allUnits.map((u) => (
             <option key={u.id} value={u.id}>{u.propertyName} {u.unitNumber}（NT${Number(u.monthlyRent).toLocaleString()}）</option>
           ))}
@@ -112,7 +112,7 @@ export default function RentComps() {
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-400">
                 <th className="text-left px-4 py-3 font-medium">區域</th>
-                <th className="text-left px-4 py-3 font-medium">房型</th>
+                <th className="text-left px-4 py-3 font-medium">倉庫類型</th>
                 <th className="text-right px-4 py-3 font-medium">中位數</th>
                 <th className="text-right px-4 py-3 font-medium">區間</th>
                 <th className="text-right px-4 py-3 font-medium">每坪</th>

@@ -28,7 +28,7 @@ async function addListing(req, res) {
         where: { id: unitId, property: { userId: req.userId } },
     });
     if (!unit) {
-        res.status(404).json({ error: '找不到房間' });
+        res.status(404).json({ error: '找不到倉庫' });
         return;
     }
     const { platform, url, notes, expiresAt } = req.body;

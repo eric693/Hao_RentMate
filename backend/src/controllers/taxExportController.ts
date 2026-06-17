@@ -142,7 +142,7 @@ export async function exportTaxReport(req: AuthRequest, res: Response) {
     [`${year} 年度租賃所得申報參考表`],
     [`製表人：${user?.name ?? ''}`, '', `製表日期：${new Date().toLocaleDateString('zh-TW')}`],
     [],
-    ['房產名稱', '地址', '房間數', '年租金收入', '實際費用', '淨所得（實際）', '淨所得（標準扣除43%）'],
+    ['據點名稱', '地址', '倉庫數', '年租金收入', '實際費用', '淨所得（實際）', '淨所得（標準扣除43%）'],
   ];
 
   for (const p of properties) {
@@ -209,10 +209,10 @@ export async function exportTaxReport(req: AuthRequest, res: Response) {
   ws2['!cols'] = [8, 14, 12, 12].map((w) => ({ wch: w }));
   XLSX.utils.book_append_sheet(wb, ws2, '月份收支明細');
 
-  // ── Sheet 3: 各房間明細 ───────────────────────────────────────────
+  // ── Sheet 3: 各倉庫明細 ───────────────────────────────────────────
   const s3: any[][] = [
-    [`${year} 年度各房間租金明細`], [],
-    ['房產', '地址', '房間', '租客', '月租金', '月份', '應收', '實收', '狀態'],
+    [`${year} 年度各倉庫租金明細`], [],
+    ['據點', '地址', '倉庫', '租客', '月租金', '月份', '應收', '實收', '狀態'],
   ];
 
   for (const p of properties)
@@ -233,7 +233,7 @@ export async function exportTaxReport(req: AuthRequest, res: Response) {
 
   const ws3 = XLSX.utils.aoa_to_sheet(s3);
   ws3['!cols'] = [14, 22, 8, 10, 10, 6, 10, 10, 10].map((w) => ({ wch: w }));
-  XLSX.utils.book_append_sheet(wb, ws3, '各房間明細');
+  XLSX.utils.book_append_sheet(wb, ws3, '各倉庫明細');
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   res.setHeader(

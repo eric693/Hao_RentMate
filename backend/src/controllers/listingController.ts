@@ -29,7 +29,7 @@ export async function addListing(req: AuthRequest, res: Response) {
   const unit = await prisma.unit.findFirst({
     where: { id: unitId, property: { userId: req.userId! } },
   });
-  if (!unit) { res.status(404).json({ error: '找不到房間' }); return; }
+  if (!unit) { res.status(404).json({ error: '找不到倉庫' }); return; }
 
   const { platform, url, notes, expiresAt } = req.body;
   if (!platform) { res.status(400).json({ error: '請選擇刊登平台' }); return; }

@@ -133,7 +133,7 @@ export default function Listings() {
         <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
           <Home className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <div className="text-gray-400 text-sm">目前沒有空房</div>
-          <div className="text-gray-300 text-xs mt-1">所有房間均已出租</div>
+          <div className="text-gray-300 text-xs mt-1">所有倉庫均已出租</div>
         </div>
       ) : (
         <div className="space-y-4">

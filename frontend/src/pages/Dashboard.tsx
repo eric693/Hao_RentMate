@@ -68,7 +68,7 @@ export default function Dashboard() {
             valueColor="text-orange-500"
           />
           <KpiCard
-            label="入住率"
+            label="出租率"
             value={`${occupancy.rate}%`}
             sub={`${occupancy.occupied} / ${occupancy.total} 間已出租`}
             subColor="text-gray-400"
@@ -234,7 +234,7 @@ export default function Dashboard() {
                 />
               )}
               <InsightItem
-                label={`入住率 ${occupancy.rate}%`}
+                label={`出租率 ${occupancy.rate}%`}
                 desc={`${occupancy.occupied}/${occupancy.total} 間已出租。${occupancy.total - occupancy.occupied > 0 ? `尚有 ${occupancy.total - occupancy.occupied} 間空房。` : ''}`}
                 color="bg-blue-400"
               />

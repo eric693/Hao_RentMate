@@ -59,7 +59,7 @@ const DATASETS: Record<string, Dataset> = {
     module: 'tenants', title: '租客名單',
     columns: [
       { key: 'name', label: '姓名' }, { key: 'phone', label: '電話' }, { key: 'email', label: 'Email', width: 1.5 },
-      { key: 'unit', label: '租屋處' }, { key: 'line', label: 'LINE 綁定' },
+      { key: 'unit', label: '承租倉庫' }, { key: 'line', label: 'LINE 綁定' },
     ],
     fetch: async (userId) => {
       const tenants = await prisma.tenant.findMany({
@@ -77,7 +77,7 @@ const DATASETS: Record<string, Dataset> = {
   contracts: {
     module: 'contracts', title: '合約清單',
     columns: [
-      { key: 'unit', label: '房間', width: 1.3 }, { key: 'tenant', label: '租客' },
+      { key: 'unit', label: '倉庫', width: 1.3 }, { key: 'tenant', label: '租客' },
       { key: 'start', label: '起租' }, { key: 'end', label: '到期' },
       { key: 'rent', label: '月租' }, { key: 'deposit', label: '押金' },
       { key: 'status', label: '狀態' }, { key: 'signed', label: '簽署' },
@@ -119,7 +119,7 @@ const DATASETS: Record<string, Dataset> = {
   'rent-records': {
     module: 'finance', title: '租金繳費記錄',
     columns: [
-      { key: 'period', label: '年月' }, { key: 'unit', label: '房間', width: 1.3 }, { key: 'tenant', label: '租客' },
+      { key: 'period', label: '年月' }, { key: 'unit', label: '倉庫', width: 1.3 }, { key: 'tenant', label: '租客' },
       { key: 'amount', label: '應收' }, { key: 'paid', label: '已收' }, { key: 'status', label: '狀態' }, { key: 'due', label: '到期日' },
     ],
     fetch: async (userId) => {
@@ -140,7 +140,7 @@ const DATASETS: Record<string, Dataset> = {
   'utility-bills': {
     module: 'finance', title: '水電分攤帳單',
     columns: [
-      { key: 'period', label: '期間', width: 1.5 }, { key: 'category', label: '類別' }, { key: 'property', label: '物業' },
+      { key: 'period', label: '期間', width: 1.5 }, { key: 'category', label: '類別' }, { key: 'property', label: '據點' },
       { key: 'total', label: '總額' }, { key: 'method', label: '分攤' }, { key: 'allocations', label: '分攤明細', width: 2.5 },
     ],
     fetch: async (userId) => {
@@ -159,7 +159,7 @@ const DATASETS: Record<string, Dataset> = {
   maintenance: {
     module: 'maintenance', title: '報修記錄',
     columns: [
-      { key: 'date', label: '日期' }, { key: 'unit', label: '房間', width: 1.3 }, { key: 'title', label: '標題', width: 1.5 },
+      { key: 'date', label: '日期' }, { key: 'unit', label: '倉庫', width: 1.3 }, { key: 'title', label: '標題', width: 1.5 },
       { key: 'category', label: '類別' }, { key: 'priority', label: '優先' }, { key: 'status', label: '狀態' }, { key: 'reporter', label: '報修人' },
     ],
     fetch: async (userId) => {
@@ -179,7 +179,7 @@ const DATASETS: Record<string, Dataset> = {
     module: 'finance', title: '金流對帳記錄',
     columns: [
       { key: 'paidAt', label: '入帳時間', width: 1.3 }, { key: 'amount', label: '金額' }, { key: 'payer', label: '付款人' },
-      { key: 'unit', label: '對應房間', width: 1.5 }, { key: 'tenant', label: '租客' },
+      { key: 'unit', label: '對應倉庫', width: 1.5 }, { key: 'tenant', label: '租客' },
       { key: 'status', label: '狀態' }, { key: 'reconciled', label: '對帳時間', width: 1.3 },
     ],
     fetch: async (userId) => {
@@ -199,7 +199,7 @@ const DATASETS: Record<string, Dataset> = {
   roi: {
     module: 'roi', title: '投報分析',
     columns: [
-      { key: 'name', label: '物業', width: 1.5 }, { key: 'units', label: '房數' }, { key: 'occupied', label: '在住' },
+      { key: 'name', label: '據點', width: 1.5 }, { key: 'units', label: '房數' }, { key: 'occupied', label: '在住' },
       { key: 'expected', label: '應收' }, { key: 'collected', label: '已收' }, { key: 'rate', label: '收款率' },
       { key: 'expenses', label: '支出' }, { key: 'net', label: '淨收益' }, { key: 'vacancy', label: '空置天數' }, { key: 'roi', label: '年化ROI' },
     ],
@@ -227,7 +227,7 @@ const DATASETS: Record<string, Dataset> = {
         { item: '待繳筆數', value: d.rentSummary.pendingCount },
         { item: '逾期筆數', value: d.rentSummary.overdueCount },
         { item: '逾期金額', value: money(d.rentSummary.overdueAmount) },
-        { item: '總房間數', value: d.occupancy.total },
+        { item: '總倉庫數', value: d.occupancy.total },
         { item: '已出租', value: d.occupancy.occupied },
         { item: '出租率', value: `${d.occupancy.rate}%` },
         { item: '待處理報修', value: d.pendingMaintenance },

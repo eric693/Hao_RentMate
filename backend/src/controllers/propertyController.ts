@@ -42,7 +42,7 @@ export async function updateProperty(req: AuthRequest, res: Response) {
   const { id } = req.params;
   const { name, address, description, purchasePrice } = req.body;
   const property = await prisma.property.findFirst({ where: { id, userId: req.userId! } });
-  if (!property) { res.status(404).json({ error: '找不到物業' }); return; }
+  if (!property) { res.status(404).json({ error: '找不到據點' }); return; }
   const updated = await prisma.property.update({
     where: { id },
     data: {
@@ -60,10 +60,10 @@ export async function updateProperty(req: AuthRequest, res: Response) {
 export async function deleteProperty(req: AuthRequest, res: Response) {
   const { id } = req.params;
   const property = await prisma.property.findFirst({ where: { id, userId: req.userId! } });
-  if (!property) { res.status(404).json({ error: '找不到物業' }); return; }
+  if (!property) { res.status(404).json({ error: '找不到據點' }); return; }
   const unitCount = await prisma.unit.count({ where: { propertyId: id } });
   if (unitCount > 0) {
-    res.status(409).json({ error: `此物業底下有 ${unitCount} 個房間，請先刪除房間後再刪除物業` });
+    res.status(409).json({ error: `此據點底下有 ${unitCount} 個倉庫，請先刪除倉庫後再刪除據點` });
     return;
   }
   await prisma.property.delete({ where: { id } });

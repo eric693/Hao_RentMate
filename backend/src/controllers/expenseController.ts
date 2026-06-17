@@ -40,7 +40,7 @@ export async function createExpense(req: AuthRequest, res: Response) {
 
   if (propertyId) {
     const prop = await prisma.property.findFirst({ where: { id: propertyId, userId: req.userId! } });
-    if (!prop) { res.status(404).json({ error: '找不到物業' }); return; }
+    if (!prop) { res.status(404).json({ error: '找不到據點' }); return; }
   }
 
   const expense = await prisma.expense.create({

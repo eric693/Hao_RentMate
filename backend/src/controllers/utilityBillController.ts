@@ -12,7 +12,7 @@ export async function previewUtilitySplit(req: AuthRequest, res: Response) {
   const { propertyId, totalAmount, method, inputs } = req.body;
   const property = await prisma.property.findFirst({ where: { id: propertyId, userId: req.userId! } });
   if (!property) {
-    res.status(404).json({ error: '找不到物業' });
+    res.status(404).json({ error: '找不到據點' });
     return;
   }
   if (!SPLIT_METHODS.includes(method)) {
@@ -28,7 +28,7 @@ export async function createUtilityBill(req: AuthRequest, res: Response) {
   const { propertyId, category, periodStart, periodEnd, totalAmount, method, inputs, note } = req.body;
   const property = await prisma.property.findFirst({ where: { id: propertyId, userId: req.userId! } });
   if (!property) {
-    res.status(404).json({ error: '找不到物業' });
+    res.status(404).json({ error: '找不到據點' });
     return;
   }
   if (!['WATER', 'ELECTRICITY', 'GAS'].includes(category)) {
@@ -42,7 +42,7 @@ export async function createUtilityBill(req: AuthRequest, res: Response) {
 
   const allocations = await computeAllocations(propertyId, Number(totalAmount), method, inputs ?? []);
   if (allocations.length === 0) {
-    res.status(400).json({ error: '此物業目前無在住房間可分攤' });
+    res.status(400).json({ error: '此據點目前無承租中倉庫可分攤' });
     return;
   }
 
@@ -89,7 +89,7 @@ export async function updateUtilityBill(req: AuthRequest, res: Response) {
 
   const allocations = await computeAllocations(bill.propertyId, newTotal, newMethod, inputs ?? []);
   if (allocations.length === 0) {
-    res.status(400).json({ error: '此物業目前無在住房間可分攤' }); return;
+    res.status(400).json({ error: '此據點目前無承租中倉庫可分攤' }); return;
   }
 
   await prisma.utilityAllocation.deleteMany({ where: { utilityBillId: id } });
@@ -125,7 +125,7 @@ export async function getUtilityBills(req: AuthRequest, res: Response) {
   res.json(bills);
 }
 
-// 開帳給租客：把分攤金額透過 LINE 通知該房間目前在住租客
+// 開帳給租客：把分攤金額透過 LINE 通知該倉庫目前在住租客
 export async function billUtilityToTenants(req: AuthRequest, res: Response) {
   const { id } = req.params;
   const bill = await prisma.utilityBill.findFirst({

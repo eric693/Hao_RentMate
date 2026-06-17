@@ -110,7 +110,7 @@ export default function CollectionWorkbench() {
   function exportCSV() {
     const tasks = data?.tasks ?? [];
     const rows = [
-      ['房號', '租客', '項目', '應收金額', '到期日', '狀態', '類型', '物業'],
+      ['倉庫編號', '租客', '項目', '應收金額', '到期日', '狀態', '類型', '據點'],
       ...tasks.map((t) => [
         t.unitNumber,
         t.tenantName,
@@ -311,7 +311,7 @@ export default function CollectionWorkbench() {
             <div className="relative flex-1 max-w-xs">
               <input
                 type="text"
-                placeholder="搜尋房號或租客"
+                placeholder="搜尋倉庫編號或租客"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:border-brand"
@@ -329,7 +329,7 @@ export default function CollectionWorkbench() {
           <div className="flex-1 overflow-y-auto">
             {/* Table header */}
             <div className="sticky top-0 bg-gray-50 border-b border-gray-100 grid grid-cols-7 px-4 py-2 text-xs text-gray-400 font-medium">
-              <div>房號</div>
+              <div>倉庫編號</div>
               <div>租客</div>
               <div className="col-span-2">項目</div>
               <div>應收金額</div>
@@ -420,7 +420,7 @@ export default function CollectionWorkbench() {
                   <span className="text-gray-600">{selectedTask.tenantName === '—' ? '未填寫 / 尚未填寫電話' : selectedTask.tenantName}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">房間資訊</span>
+                  <span className="text-gray-400">倉庫資訊</span>
                   <span className="text-gray-600">{selectedTask.propertyName} / {selectedTask.unitNumber}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">

@@ -36,7 +36,7 @@ async function classifyMaintenance(title, description) {
             system: [
                 {
                     type: 'text',
-                    text: `你是租屋物業維修分類助理。根據租客的報修標題與描述，判斷維修類別與緊急程度。
+                    text: `你是租屋據點維修分類助理。根據租客的報修標題與描述，判斷維修類別與緊急程度。
 類別只能從以下擇一：${MAINTENANCE_CATEGORIES.join('、')}。
 緊急程度 priority：HIGH（漏水、停電、瓦斯、無法上鎖等安全或居住急迫問題）、MEDIUM（一般故障影響使用）、LOW（外觀、輕微、不影響使用）。
 只回傳 JSON，格式：{"category":"...","priority":"HIGH|MEDIUM|LOW"}`,
@@ -242,7 +242,7 @@ async function checkContractCompliance(contract) {
 const TOOLS = [
     {
         name: 'get_unpaid_rents',
-        description: '查詢目前尚未繳清（待繳/逾期/部分繳納）的租金，回傳租客、房間、應繳與已繳金額。',
+        description: '查詢目前尚未繳清（待繳/逾期/部分繳納）的租金，回傳租客、倉庫、應繳與已繳金額。',
         input_schema: { type: 'object', properties: {} },
     },
     {
@@ -256,7 +256,7 @@ const TOOLS = [
     },
     {
         name: 'get_vacancies',
-        description: '查詢目前空置（待出租）的房間。',
+        description: '查詢目前空置（待出租）的倉庫。',
         input_schema: { type: 'object', properties: {} },
     },
     {
@@ -453,7 +453,7 @@ async function financialInsights(userId) {
         近6月實收租金: income,
         近6月支出: expenseTotal,
         淨現金流: income - expenseTotal,
-        空置房間數: vacancies,
+        空置倉庫數: vacancies,
         逾期未繳筆數: overdue,
         支出筆數: expenses.length,
     };

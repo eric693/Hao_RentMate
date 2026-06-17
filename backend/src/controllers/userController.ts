@@ -5,7 +5,7 @@ import { prisma } from '../app';
 
 // 可指派的模組權限清單（鍵 + 顯示名稱）
 export const MODULES = [
-  { key: 'properties', label: '房務' },
+  { key: 'properties', label: '倉儲' },
   { key: 'tenants', label: '租客' },
   { key: 'finance', label: '帳務' },
   { key: 'contracts', label: '合約' },

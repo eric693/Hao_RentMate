@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.computeAllocations = computeAllocations;
 const app_1 = require("../app");
-// 取得物業內目前有 ACTIVE 合約的房間（分攤對象）
+// 取得據點內目前有 ACTIVE 合約的倉庫（分攤對象）
 async function activeUnits(propertyId) {
     return app_1.prisma.unit.findMany({
         where: { propertyId, contracts: { some: { status: 'ACTIVE' } } },

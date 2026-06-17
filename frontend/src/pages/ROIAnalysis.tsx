@@ -88,7 +88,7 @@ export default function ROIAnalysis() {
       <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
         <div>
           <h1 className="text-xl font-bold text-gray-800">投報分析</h1>
-          <p className="text-xs text-gray-400 mt-0.5">近 12 個月各房產收益、空置成本與年化投報率</p>
+          <p className="text-xs text-gray-400 mt-0.5">近 12 個月各據點收益、空置成本與年化投報率</p>
         </div>
         <ExportButtons type="roi" />
       </div>
@@ -97,9 +97,9 @@ export default function ROIAnalysis() {
         {data.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-gray-400">
             <Building2 className="w-12 h-12 text-gray-200" />
-            <p className="text-sm">尚未建立任何房產</p>
+            <p className="text-sm">尚未建立任何據點</p>
             <button onClick={() => navigate('/properties')} className="btn-primary text-sm px-4 py-2">
-              前往建立房產
+              前往建立據點
             </button>
           </div>
         ) : (
@@ -121,7 +121,7 @@ export default function ROIAnalysis() {
               <KpiCard
                 label="平均收款率"
                 value={`${avgCollectionRate}%`}
-                sub="各房產平均"
+                sub="各據點平均"
                 accent={
                   avgCollectionRate >= 90
                     ? 'text-brand'
@@ -131,7 +131,7 @@ export default function ROIAnalysis() {
                 }
               />
               <KpiCard
-                label="收益最佳房產"
+                label="收益最佳據點"
                 value={bestProperty?.name ?? '--'}
                 sub={bestProperty ? `淨收益 ${fmt(bestProperty.netIncome)}` : '尚無資料'}
                 accent="text-brand"
@@ -141,7 +141,7 @@ export default function ROIAnalysis() {
             {/* Bar chart — only if multiple properties */}
             {data.length > 1 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
-                <h2 className="font-semibold text-gray-800 mb-4">各房產收益比較</h2>
+                <h2 className="font-semibold text-gray-800 mb-4">各據點收益比較</h2>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
@@ -164,7 +164,7 @@ export default function ROIAnalysis() {
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-5">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-gray-800">各房產排名</h2>
+                  <h2 className="font-semibold text-gray-800">各據點排名</h2>
                   <p className="text-xs text-gray-400 mt-0.5">點擊「買入總價」即可輸入，自動計算年化投報率</p>
                 </div>
                 <TrendingUp className="w-5 h-5 text-brand" />
@@ -194,7 +194,7 @@ export default function ROIAnalysis() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
                         <div className="bg-warm rounded-xl p-2.5">
-                          <div className="text-gray-400 mb-0.5">入住率</div>
+                          <div className="text-gray-400 mb-0.5">出租率</div>
                           <div className={`font-semibold ${occ === 100 ? 'text-brand' : occ >= 70 ? 'text-amber-500' : 'text-red-400'}`}>{occ}% · {p.occupiedUnits}/{p.totalUnits} 間</div>
                         </div>
                         <div className="bg-warm rounded-xl p-2.5">
@@ -250,8 +250,8 @@ export default function ROIAnalysis() {
                   <thead>
                     <tr className="bg-warm text-xs text-gray-400 font-medium">
                       <th className="px-4 py-3 text-left w-8">#</th>
-                      <th className="px-4 py-3 text-left">房產</th>
-                      <th className="px-4 py-3 text-right">入住率</th>
+                      <th className="px-4 py-3 text-left">據點</th>
+                      <th className="px-4 py-3 text-right">出租率</th>
                       <th className="px-4 py-3 text-right">已收款</th>
                       <th className="px-4 py-3 text-right">支出</th>
                       <th className="px-4 py-3 text-right">淨收益</th>

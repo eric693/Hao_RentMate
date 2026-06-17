@@ -99,7 +99,7 @@ export async function sendReminder(req: AuthRequest, res: Response) {
   }
 
   const { tenant, unit } = record.contract;
-  const text = `📢 繳租提醒\n您好 ${tenant.name}，${record.year} 年 ${record.month} 月房間 ${unit.unitNumber} 租金 NT$${Number(record.amount).toLocaleString()} ${record.status === 'OVERDUE' ? '已逾期，' : '即將到期，'}請盡快繳納。`;
+  const text = `📢 繳租提醒\n您好 ${tenant.name}，${record.year} 年 ${record.month} 月倉庫 ${unit.unitNumber} 租金 NT$${Number(record.amount).toLocaleString()} ${record.status === 'OVERDUE' ? '已逾期，' : '即將到期，'}請盡快繳納。`;
   const sent = await sendTenantMessage(tenant.id, text);
   res.json({ sent, message: sent ? '提醒已發送' : '租客未綁定 LINE，提醒未送出' });
 }

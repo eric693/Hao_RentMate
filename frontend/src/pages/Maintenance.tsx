@@ -212,7 +212,7 @@ function AddMaintenanceModal({ units, onClose, onSaved }: {
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-1">房間</label>
+            <label className="block text-sm font-medium mb-1">倉庫</label>
             <select className="input" value={form.unitId} onChange={e => setForm({ ...form, unitId: e.target.value })} required>
               <option value="">請選擇</option>
               {units.map(u => <option key={u.id} value={u.id}>{u.unitNumber} — {u.propertyName}</option>)}

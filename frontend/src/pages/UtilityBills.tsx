@@ -127,7 +127,7 @@ export default function UtilityBills() {
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-400">
                 <th className="text-left px-4 py-3 font-medium">類別</th>
-                <th className="text-left px-4 py-3 font-medium">物業 / 房間</th>
+                <th className="text-left px-4 py-3 font-medium">據點 / 倉庫</th>
                 <th className="text-left px-4 py-3 font-medium">說明</th>
                 <th className="text-left px-4 py-3 font-medium">日期</th>
                 <th className="text-right px-4 py-3 font-medium">金額</th>
@@ -305,7 +305,7 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-medium mb-1">物業</label>
+              <label className="block text-sm font-medium mb-1">據點</label>
               <select className="input" value={form.propertyId} onChange={(e) => { setForm({ ...form, propertyId: e.target.value }); setPreview(null); }}>
                 {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -365,7 +365,7 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
             <div className="bg-warm rounded-xl p-3">
               <div className="text-xs font-medium text-gray-600 mb-2">分攤結果（{occupiedUnits.length} 間在住）</div>
               {preview.length === 0 ? (
-                <div className="text-xs text-gray-400">此物業目前無在住房間。</div>
+                <div className="text-xs text-gray-400">此據點目前無承租中倉庫。</div>
               ) : (
                 <div className="space-y-1">
                   {preview.map((a) => (
@@ -434,7 +434,7 @@ function AddUtilityModal({ properties, allUnits, onClose, onSaved }: {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">物業</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">據點</label>
             <select
               value={form.propertyId}
               onChange={(e) => setForm({ ...form, propertyId: e.target.value, unitId: '' })}
@@ -446,7 +446,7 @@ function AddUtilityModal({ properties, allUnits, onClose, onSaved }: {
           </div>
           {form.propertyId && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">房間（選填，公共區域可不填）</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">倉庫（選填，公共區域可不填）</label>
               <select value={form.unitId} onChange={(e) => setForm({ ...form, unitId: e.target.value })} className="input">
                 <option value="">公共區域</option>
                 {unitsForProperty.map((u) => <option key={u.id} value={u.id}>{u.unitNumber}</option>)}

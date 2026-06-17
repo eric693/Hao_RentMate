@@ -44,7 +44,7 @@ async function updateProperty(req, res) {
     const { name, address, description, purchasePrice } = req.body;
     const property = await app_1.prisma.property.findFirst({ where: { id, userId: req.userId } });
     if (!property) {
-        res.status(404).json({ error: '找不到物業' });
+        res.status(404).json({ error: '找不到據點' });
         return;
     }
     const updated = await app_1.prisma.property.update({
@@ -64,12 +64,12 @@ async function deleteProperty(req, res) {
     const { id } = req.params;
     const property = await app_1.prisma.property.findFirst({ where: { id, userId: req.userId } });
     if (!property) {
-        res.status(404).json({ error: '找不到物業' });
+        res.status(404).json({ error: '找不到據點' });
         return;
     }
     const unitCount = await app_1.prisma.unit.count({ where: { propertyId: id } });
     if (unitCount > 0) {
-        res.status(409).json({ error: `此物業底下有 ${unitCount} 個房間，請先刪除房間後再刪除物業` });
+        res.status(409).json({ error: `此據點底下有 ${unitCount} 個倉庫，請先刪除倉庫後再刪除據點` });
         return;
     }
     await app_1.prisma.property.delete({ where: { id } });

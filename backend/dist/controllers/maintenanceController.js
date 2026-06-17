@@ -37,14 +37,14 @@ async function createMaintenanceRequest(req, res) {
     }
     const unit = await app_1.prisma.unit.findFirst({ where: { id: unitId }, include: { property: true } });
     if (!unit || unit.property.userId !== req.userId) {
-        res.status(404).json({ error: '找不到房間' });
+        res.status(404).json({ error: '找不到倉庫' });
         return;
     }
     const request = await app_1.prisma.maintenanceRequest.create({
         data: { unitId, tenantId, title, description, priority: priority ?? 'MEDIUM' },
         include: { unit: { include: { property: true } }, tenant: true },
     });
-    await (0, lineService_1.sendLandlordMessage)(req.userId, `🔧 新報修通知\n房間：${unit.unitNumber}\n項目：${title}\n優先級：${priority ?? '中'}`);
+    await (0, lineService_1.sendLandlordMessage)(req.userId, `🔧 新報修通知\n倉庫：${unit.unitNumber}\n項目：${title}\n優先級：${priority ?? '中'}`);
     res.status(201).json(request);
 }
 // 房東：對一張報修單做 AI 深度分析（責任歸屬 + 費用估算），結果存入 aiAnalysis

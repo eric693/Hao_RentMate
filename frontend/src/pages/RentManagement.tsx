@@ -123,7 +123,7 @@ export default function RentManagement() {
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-400">
                 <th className="text-left px-4 py-3 font-medium">租客</th>
-                <th className="text-left px-4 py-3 font-medium">房號</th>
+                <th className="text-left px-4 py-3 font-medium">倉庫編號</th>
                 <th className="text-right px-4 py-3 font-medium">應收金額</th>
                 <th className="text-left px-4 py-3 font-medium">到期日</th>
                 <th className="text-left px-4 py-3 font-medium">狀態</th>

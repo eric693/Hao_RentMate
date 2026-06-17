@@ -36,7 +36,7 @@ export async function createMaintenanceRequest(req: AuthRequest, res: Response) 
   }
   const unit = await prisma.unit.findFirst({ where: { id: unitId }, include: { property: true } });
   if (!unit || unit.property.userId !== req.userId!) {
-    res.status(404).json({ error: '找不到房間' }); return;
+    res.status(404).json({ error: '找不到倉庫' }); return;
   }
 
   const request = await prisma.maintenanceRequest.create({
@@ -44,7 +44,7 @@ export async function createMaintenanceRequest(req: AuthRequest, res: Response) 
     include: { unit: { include: { property: true } }, tenant: true },
   });
 
-  await sendLandlordMessage(req.userId!, `🔧 新報修通知\n房間：${unit.unitNumber}\n項目：${title}\n優先級：${priority ?? '中'}`);
+  await sendLandlordMessage(req.userId!, `🔧 新報修通知\n倉庫：${unit.unitNumber}\n項目：${title}\n優先級：${priority ?? '中'}`);
 
   res.status(201).json(request);
 }

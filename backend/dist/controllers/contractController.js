@@ -71,7 +71,7 @@ async function createContract(req, res) {
     }
     const unit = await app_1.prisma.unit.findFirst({ where: { id: unitId }, include: { property: true } });
     if (!unit || unit.property.userId !== req.userId) {
-        res.status(404).json({ error: '找不到房間' });
+        res.status(404).json({ error: '找不到倉庫' });
         return;
     }
     const contract = await app_1.prisma.contract.create({

@@ -1,6 +1,6 @@
 import { prisma } from '../app';
 
-// 水電費分攤：把一張總單拆給該物業目前有「在住合約」的房間。
+// 水電費分攤：把一張總單拆給該據點目前有「在住合約」的倉庫。
 // 方法：EVEN 平均 / AREA 坪數 / HEADCOUNT 人頭 / USAGE 自訂用量。
 
 export type SplitMethod = 'EVEN' | 'AREA' | 'HEADCOUNT' | 'USAGE';
@@ -17,7 +17,7 @@ export interface ComputedAllocation {
   basis: number | null;
 }
 
-// 取得物業內目前有 ACTIVE 合約的房間（分攤對象）
+// 取得據點內目前有 ACTIVE 合約的倉庫（分攤對象）
 async function activeUnits(propertyId: string) {
   return prisma.unit.findMany({
     where: { propertyId, contracts: { some: { status: 'ACTIVE' } } },

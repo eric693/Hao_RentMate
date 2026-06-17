@@ -183,7 +183,7 @@ export default function Tenants() {
                 {activeContract && unit && property && (
                   <div className="flex items-center gap-1 text-xs text-gray-500 mb-2 bg-warm rounded-lg px-3 py-1.5">
                     <Home className="w-3 h-3 text-brand" />
-                    <span>{property.name} — 房號 {unit.unitNumber}</span>
+                    <span>{property.name} — 倉庫編號 {unit.unitNumber}</span>
                     <span className="ml-auto text-gray-400">
                       到期：{new Date(activeContract.endDate).toLocaleDateString('zh-TW')}
                     </span>
@@ -428,7 +428,7 @@ function TenantHistoryDrawer({ tenant, onClose }: { tenant: Tenant; onClose: () 
                       {r.year} 年 {r.month} 月
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5">
-                      {r.contract?.unit?.unitNumber && `房號 ${r.contract.unit.unitNumber} · `}
+                      {r.contract?.unit?.unitNumber && `倉庫編號 ${r.contract.unit.unitNumber} · `}
                       到期 {new Date(r.dueDate).toLocaleDateString('zh-TW')}
                     </div>
                     {r.paidDate && (

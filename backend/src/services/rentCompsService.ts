@@ -1,7 +1,7 @@
 import { prisma } from '../app';
 
 // 在地租金行情：聚合「全平台」的合約租金（跨房東，匿名統計）作為行情基準。
-// 資料越多越準 → 自我強化的資料護城河。分群維度：行政區 + 房型。
+// 資料越多越準 → 自我強化的資料護城河。分群維度：行政區 + 倉庫類型。
 
 // 從地址粗略推斷行政區（未填 district 時的後援）
 export function inferDistrict(address: string): string | null {
@@ -82,7 +82,7 @@ export interface PricingSuggestion {
   advice: string;
 }
 
-// 針對某房間給定價建議（與在地行情比較）
+// 針對某倉庫給定價建議（與在地行情比較）
 export async function pricingForUnit(unitId: string): Promise<PricingSuggestion | null> {
   const unit = await prisma.unit.findUnique({ where: { id: unitId }, include: { property: true } });
   if (!unit) return null;
@@ -90,14 +90,14 @@ export async function pricingForUnit(unitId: string): Promise<PricingSuggestion 
   const district = unit.property.district ?? inferDistrict(unit.property.address) ?? '未分區';
   const type = unit.type ?? '未分類';
   const comps = await getComps();
-  // 同區同房型；樣本不足時退回同區所有房型
+  // 同區同倉庫類型；樣本不足時退回同區所有倉庫類型
   let comp = comps.find((c) => c.district === district && c.type === type && c.sampleSize >= 3);
   if (!comp) {
     const sameDistrict = comps.filter((c) => c.district === district);
     if (sameDistrict.length) {
       const rents = sameDistrict.flatMap((c) => Array(c.sampleSize).fill(c.medianRent));
       comp = {
-        district, type: '全房型',
+        district, type: '全倉庫類型',
         sampleSize: rents.length,
         medianRent: median(rents),
         avgRent: Math.round(rents.reduce((s: number, r: number) => s + r, 0) / rents.length),

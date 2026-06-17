@@ -9,7 +9,7 @@ async function getUnits(req, res) {
     const { propertyId } = req.params;
     const property = await app_1.prisma.property.findFirst({ where: { id: propertyId, userId: req.userId } });
     if (!property) {
-        res.status(404).json({ error: '找不到物業' });
+        res.status(404).json({ error: '找不到據點' });
         return;
     }
     const units = await app_1.prisma.unit.findMany({
@@ -33,7 +33,7 @@ async function createUnit(req, res) {
     const { propertyId } = req.params;
     const property = await app_1.prisma.property.findFirst({ where: { id: propertyId, userId: req.userId } });
     if (!property) {
-        res.status(404).json({ error: '找不到物業' });
+        res.status(404).json({ error: '找不到據點' });
         return;
     }
     const { unitNumber, floor, type, monthlyRent, description, areaPing, tempControl, palletSlots } = req.body;
@@ -77,12 +77,12 @@ async function deleteUnit(req, res) {
     const { id } = req.params;
     const unit = await app_1.prisma.unit.findFirst({ where: { id }, include: { property: true } });
     if (!unit || unit.property.userId !== req.userId) {
-        res.status(404).json({ error: '找不到房間' });
+        res.status(404).json({ error: '找不到倉庫' });
         return;
     }
     const contractCount = await app_1.prisma.contract.count({ where: { unitId: id } });
     if (contractCount > 0) {
-        res.status(409).json({ error: `此房間有 ${contractCount} 份合約，請先刪除合約後再刪除房間` });
+        res.status(409).json({ error: `此倉庫有 ${contractCount} 份合約，請先刪除合約後再刪除倉庫` });
         return;
     }
     await app_1.prisma.unit.delete({ where: { id } });

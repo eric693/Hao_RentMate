@@ -346,7 +346,7 @@ function TeamMembersTab({ user, tenantCount }: { user: any; tenantCount: number 
               <option value="維修人員">維修人員</option>
             </select>
             <p className="text-xs text-gray-400 self-center whitespace-nowrap">
-              {inviteRole === '管理員' ? '房源、租客、租金、報修與 LINE 基本管理。' : inviteRole === '財務' ? '帳務相關功能。' : '報修管理。'}
+              {inviteRole === '管理員' ? '倉庫、租客、租金、報修與 LINE 基本管理。' : inviteRole === '財務' ? '帳務相關功能。' : '報修管理。'}
             </p>
           </div>
           <button type="submit" className="btn-primary text-sm w-full flex items-center justify-center gap-2">
@@ -558,7 +558,7 @@ function NotificationsTab() {
         <div className="space-y-1">
           {[
             { label: '合約到期提醒', desc: '合約到期前 30、14、7 天提醒房東與租客' },
-            { label: '逾期彙整通知', desc: '每日9時將逾期房間彙整後通知房東 LINE' },
+            { label: '逾期彙整通知', desc: '每日9時將逾期倉庫彙整後通知房東 LINE' },
           ].map((item) => (
             <div key={item.label} className="flex items-start justify-between py-3 border-b border-gray-50 last:border-0">
               <div className="flex-1 mr-4">

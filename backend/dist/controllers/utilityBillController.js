@@ -15,7 +15,7 @@ async function previewUtilitySplit(req, res) {
     const { propertyId, totalAmount, method, inputs } = req.body;
     const property = await app_1.prisma.property.findFirst({ where: { id: propertyId, userId: req.userId } });
     if (!property) {
-        res.status(404).json({ error: '找不到物業' });
+        res.status(404).json({ error: '找不到據點' });
         return;
     }
     if (!SPLIT_METHODS.includes(method)) {
@@ -30,7 +30,7 @@ async function createUtilityBill(req, res) {
     const { propertyId, category, periodStart, periodEnd, totalAmount, method, inputs, note } = req.body;
     const property = await app_1.prisma.property.findFirst({ where: { id: propertyId, userId: req.userId } });
     if (!property) {
-        res.status(404).json({ error: '找不到物業' });
+        res.status(404).json({ error: '找不到據點' });
         return;
     }
     if (!['WATER', 'ELECTRICITY', 'GAS'].includes(category)) {
@@ -43,7 +43,7 @@ async function createUtilityBill(req, res) {
     }
     const allocations = await (0, utilityService_1.computeAllocations)(propertyId, Number(totalAmount), method, inputs ?? []);
     if (allocations.length === 0) {
-        res.status(400).json({ error: '此物業目前無在住房間可分攤' });
+        res.status(400).json({ error: '此據點目前無承租中倉庫可分攤' });
         return;
     }
     const bill = await app_1.prisma.utilityBill.create({
@@ -92,7 +92,7 @@ async function updateUtilityBill(req, res) {
     }
     const allocations = await (0, utilityService_1.computeAllocations)(bill.propertyId, newTotal, newMethod, inputs ?? []);
     if (allocations.length === 0) {
-        res.status(400).json({ error: '此物業目前無在住房間可分攤' });
+        res.status(400).json({ error: '此據點目前無承租中倉庫可分攤' });
         return;
     }
     await app_1.prisma.utilityAllocation.deleteMany({ where: { utilityBillId: id } });
@@ -126,7 +126,7 @@ async function getUtilityBills(req, res) {
     });
     res.json(bills);
 }
-// 開帳給租客：把分攤金額透過 LINE 通知該房間目前在住租客
+// 開帳給租客：把分攤金額透過 LINE 通知該倉庫目前在住租客
 async function billUtilityToTenants(req, res) {
     const { id } = req.params;
     const bill = await app_1.prisma.utilityBill.findFirst({

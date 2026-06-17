@@ -165,7 +165,7 @@ export default function Contracts() {
         <div className="relative flex-1 max-w-xs">
           <input
             type="text"
-            placeholder="搜尋租客姓名或房號"
+            placeholder="搜尋租客姓名或倉庫編號"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full text-sm border border-gray-200 rounded-xl pl-8 pr-3 py-2 outline-none focus:border-brand bg-white"
@@ -452,7 +452,7 @@ function AddContractModal({ units, tenants, editing, onClose, onSaved }: {
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-1">房間 <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-medium mb-1">倉庫 <span className="text-red-400">*</span></label>
             <select
               className="input disabled:bg-gray-100 disabled:text-gray-400"
               value={form.unitId}
@@ -463,7 +463,7 @@ function AddContractModal({ units, tenants, editing, onClose, onSaved }: {
               }}
               required
             >
-              <option value="">請選擇房間</option>
+              <option value="">請選擇倉庫</option>
               {units.map((u) => (
                 <option key={u.id} value={u.id}>{u.propertyName} — {u.unitNumber} (NT${Number(u.monthlyRent).toLocaleString()})</option>
               ))}
@@ -476,7 +476,7 @@ function AddContractModal({ units, tenants, editing, onClose, onSaved }: {
               {tenants.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.phone}</option>)}
             </select>
           </div>
-          {isEdit && <p className="text-xs text-gray-400 -mt-1">房間與租客建立後不可變更</p>}
+          {isEdit && <p className="text-xs text-gray-400 -mt-1">倉庫與租客建立後不可變更</p>}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-sm font-medium mb-1">開始日期 <span className="text-red-400">*</span></label>

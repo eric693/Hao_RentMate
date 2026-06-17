@@ -149,7 +149,7 @@ export default function TenantPortal() {
                 <h2 className="font-bold text-gray-800 mb-3">付款資訊</h2>
                 <div className="text-sm space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">租屋處</span>
+                    <span className="text-gray-500">承租倉庫</span>
                     <span className="text-gray-800">{payment.contract.propertyName} {payment.contract.unitNumber}</span>
                   </div>
                   <div className="flex justify-between">

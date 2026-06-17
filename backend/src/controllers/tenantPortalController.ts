@@ -116,7 +116,7 @@ export async function tenantCreateMaintenance(req: TenantRequest, res: Response)
     return;
   }
 
-  // 找租客現行合約對應的房間
+  // 找租客現行合約對應的倉庫
   const contract = await prisma.contract.findFirst({
     where: { tenantId: req.tenantId!, status: 'ACTIVE' },
     include: { unit: { include: { property: true } }, tenant: true },
@@ -149,7 +149,7 @@ export async function tenantCreateMaintenance(req: TenantRequest, res: Response)
 
   await sendLandlordMessage(
     contract.unit.property.userId,
-    `新報修通知（租客提交）\n房間：${contract.unit.unitNumber}\n項目：${title}\n類別：${ai.category}\n優先級：${ai.priority}\n說明：${description}${photoUrls.length ? `\n附照片 ${photoUrls.length} 張` : ''}`,
+    `新報修通知（租客提交）\n倉庫：${contract.unit.unitNumber}\n項目：${title}\n類別：${ai.category}\n優先級：${ai.priority}\n說明：${description}${photoUrls.length ? `\n附照片 ${photoUrls.length} 張` : ''}`,
   );
 
   res.status(201).json(request);

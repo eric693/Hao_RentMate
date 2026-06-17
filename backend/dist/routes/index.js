@@ -49,12 +49,12 @@ router.delete('/users/:id', auth_1.requireAuth, auth_1.requireAdmin, userControl
 router.get('/dashboard', auth_1.requireAuth, dashboardController_1.getDashboard);
 // 資料匯出（Excel / PDF）— 權限於 controller 內依資料類型檢查
 router.get('/export/:type', auth_1.requireAuth, exportController_1.exportData);
-// Properties（房務）
+// Properties（倉儲）
 router.get('/properties', ...can('properties'), propertyController_1.getProperties);
 router.post('/properties', ...can('properties'), propertyController_1.createProperty);
 router.put('/properties/:id', ...can('properties'), propertyController_1.updateProperty);
 router.delete('/properties/:id', ...can('properties'), propertyController_1.deleteProperty);
-// Units（房務）
+// Units（倉儲）
 router.get('/properties/:propertyId/units', ...can('properties'), unitController_1.getUnits);
 router.post('/properties/:propertyId/units', ...can('properties'), unitController_1.createUnit);
 router.put('/units/:id', ...can('properties'), unitController_1.updateUnit);
