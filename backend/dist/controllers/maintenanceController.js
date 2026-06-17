@@ -2,9 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMaintenanceRequests = getMaintenanceRequests;
 exports.createMaintenanceRequest = createMaintenanceRequest;
+exports.analyzeMaintenanceRequest = analyzeMaintenanceRequest;
 exports.updateMaintenanceRequest = updateMaintenanceRequest;
 const app_1 = require("../app");
 const lineService_1 = require("../services/lineService");
+const aiService_1 = require("../services/aiService");
 async function getUserUnitIds(userId) {
     const properties = await app_1.prisma.property.findMany({ where: { userId } });
     const propertyIds = properties.map((p) => p.id);
@@ -44,6 +46,24 @@ async function createMaintenanceRequest(req, res) {
     });
     await (0, lineService_1.sendLandlordMessage)(req.userId, `🔧 新報修通知\n房間：${unit.unitNumber}\n項目：${title}\n優先級：${priority ?? '中'}`);
     res.status(201).json(request);
+}
+// 房東：對一張報修單做 AI 深度分析（責任歸屬 + 費用估算），結果存入 aiAnalysis
+async function analyzeMaintenanceRequest(req, res) {
+    const { id } = req.params;
+    const request = await app_1.prisma.maintenanceRequest.findFirst({
+        where: { id },
+        include: { unit: { include: { property: true } } },
+    });
+    if (!request || request.unit.property.userId !== req.userId) {
+        res.status(404).json({ error: '找不到報修單' });
+        return;
+    }
+    const analysis = await (0, aiService_1.analyzeMaintenance)(request.title, request.description, request.category ?? undefined);
+    const updated = await app_1.prisma.maintenanceRequest.update({
+        where: { id },
+        data: { aiAnalysis: analysis },
+    });
+    res.json({ ...analysis, request: updated });
 }
 async function updateMaintenanceRequest(req, res) {
     const { id } = req.params;

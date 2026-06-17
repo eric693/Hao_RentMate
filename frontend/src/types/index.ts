@@ -2,6 +2,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  role?: 'ADMIN' | 'STAFF';
+  permissions?: string[];
 }
 
 export interface Property {
@@ -51,9 +53,11 @@ export interface Contract {
   rentDueDay: number;
   status: 'ACTIVE' | 'EXPIRED' | 'TERMINATED';
   notes?: string;
+  customTerms?: string;
   signToken?: string;
   signedAt?: string;
   signerName?: string;
+  signerIdDocument?: string;
   unit?: Unit & { property?: Property };
   tenant?: Tenant;
   rentRecords?: RentRecord[];

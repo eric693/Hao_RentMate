@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.checkCompliance = checkCompliance;
 exports.getContracts = getContracts;
 exports.createContract = createContract;
 exports.updateContract = updateContract;
@@ -12,7 +13,33 @@ exports.signContractByToken = signContractByToken;
 const app_1 = require("../app");
 const rentService_1 = require("../services/rentService");
 const lineService_1 = require("../services/lineService");
+const aiService_1 = require("../services/aiService");
+const uploadService_1 = require("../services/uploadService");
 const crypto_1 = __importDefault(require("crypto"));
+// 合約合規檢查：依內政部應記載/不得記載事項，產生報告並存入 complianceResult
+async function checkCompliance(req, res) {
+    const { id } = req.params;
+    const contract = await app_1.prisma.contract.findFirst({
+        where: { id, unit: { property: { userId: req.userId } } },
+    });
+    if (!contract) {
+        res.status(404).json({ error: '找不到合約' });
+        return;
+    }
+    const result = await (0, aiService_1.checkContractCompliance)({
+        monthlyRent: Number(contract.monthlyRent),
+        depositAmount: Number(contract.depositAmount),
+        startDate: contract.startDate,
+        endDate: contract.endDate,
+        rentDueDay: contract.rentDueDay,
+        notes: contract.notes,
+    });
+    await app_1.prisma.contract.update({
+        where: { id },
+        data: { complianceResult: result, complianceCheckedAt: new Date() },
+    });
+    res.json(result);
+}
 async function getContracts(req, res) {
     const userId = req.userId;
     const { status } = req.query;
@@ -36,7 +63,7 @@ async function getContracts(req, res) {
     res.json(contracts);
 }
 async function createContract(req, res) {
-    const { unitId, tenantId, startDate, endDate, monthlyRent, depositAmount, depositPaid, rentDueDay, notes } = req.body;
+    const { unitId, tenantId, startDate, endDate, monthlyRent, depositAmount, depositPaid, rentDueDay, notes, customTerms } = req.body;
     if (!unitId || !tenantId || !startDate || !endDate || !monthlyRent) {
         res.status(400).json({ error: '請填寫所有必填欄位' });
         return;
@@ -57,6 +84,7 @@ async function createContract(req, res) {
             depositPaid: depositPaid ?? false,
             rentDueDay: rentDueDay ?? 5,
             notes,
+            customTerms: customTerms || null,
         },
     });
     await app_1.prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } });
@@ -73,10 +101,37 @@ async function updateContract(req, res) {
         res.status(404).json({ error: '找不到合約' });
         return;
     }
-    const { endDate, status, notes, depositPaid } = req.body;
+    const { startDate, endDate, monthlyRent, depositAmount, depositPaid, rentDueDay, notes, customTerms, status } = req.body;
+    // C：合約一旦完成電子簽署即鎖定內容，僅允許變更狀態（如終止）與押金已付註記，
+    //    其餘條款欄位禁止修改，以維持已簽合約不可竄改。
+    if (contract.signedAt) {
+        const editingTerms = [startDate, endDate, monthlyRent, depositAmount, rentDueDay, notes, customTerms]
+            .some((v) => v !== undefined);
+        if (editingTerms) {
+            res.status(400).json({ error: '合約已完成電子簽署，內容已鎖定不可修改（僅能變更合約狀態）' });
+            return;
+        }
+        const locked = await app_1.prisma.contract.update({ where: { id }, data: { status, depositPaid } });
+        if (status === 'TERMINATED' || status === 'EXPIRED') {
+            await app_1.prisma.unit.update({ where: { id: contract.unitId }, data: { status: 'VACANT' } });
+        }
+        res.json(locked);
+        return;
+    }
+    // A：尚未簽署 —— 可完整編輯合約內容
     const updated = await app_1.prisma.contract.update({
         where: { id },
-        data: { endDate: endDate ? new Date(endDate) : undefined, status, notes, depositPaid },
+        data: {
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            monthlyRent: monthlyRent !== undefined && monthlyRent !== '' ? monthlyRent : undefined,
+            depositAmount: depositAmount !== undefined && depositAmount !== '' ? depositAmount : undefined,
+            depositPaid,
+            rentDueDay: rentDueDay !== undefined && rentDueDay !== '' ? Number(rentDueDay) : undefined,
+            notes,
+            customTerms: customTerms !== undefined ? (customTerms || null) : undefined,
+            status,
+        },
     });
     if (status === 'TERMINATED' || status === 'EXPIRED') {
         await app_1.prisma.unit.update({ where: { id: contract.unitId }, data: { status: 'VACANT' } });
@@ -137,6 +192,7 @@ async function getContractByToken(req, res) {
         depositAmount: contract.depositAmount,
         rentDueDay: contract.rentDueDay,
         notes: contract.notes,
+        customTerms: contract.customTerms,
         unit: { unitNumber: contract.unit.unitNumber },
         property: { name: contract.unit.property.name, address: contract.unit.property.address },
         tenant: { name: contract.tenant.name },
@@ -144,9 +200,13 @@ async function getContractByToken(req, res) {
 }
 async function signContractByToken(req, res) {
     const { token } = req.params;
-    const { signerName, agreed } = req.body;
+    const { signerName, agreed, idDocument } = req.body;
     if (!agreed || !signerName) {
         res.status(400).json({ error: '請填寫姓名並確認同意' });
+        return;
+    }
+    if (!idDocument) {
+        res.status(400).json({ error: '請上傳證件影像以完成身分驗證' });
         return;
     }
     const contract = await app_1.prisma.contract.findUnique({ where: { signToken: token } });
@@ -158,9 +218,14 @@ async function signContractByToken(req, res) {
         res.status(400).json({ error: '合約已完成簽署' });
         return;
     }
+    const idPath = (0, uploadService_1.saveBase64Image)(idDocument, 'id-documents');
+    if (!idPath) {
+        res.status(400).json({ error: '證件影像格式不支援（請上傳 JPG/PNG，單張 8MB 內）' });
+        return;
+    }
     const updated = await app_1.prisma.contract.update({
         where: { id: contract.id },
-        data: { signedAt: new Date(), signerName },
+        data: { signedAt: new Date(), signerName, signerIdDocument: idPath },
     });
     res.json({ signedAt: updated.signedAt, message: '簽署完成，感謝您！' });
 }

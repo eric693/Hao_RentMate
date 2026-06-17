@@ -7,6 +7,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  isAdmin: boolean;
+  hasPerm: (module: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -38,8 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  const isAdmin = user?.role !== 'STAFF'; // 預設(無 role)或 ADMIN 皆視為管理員
+  function hasPerm(module: string) {
+    if (isAdmin) return true;
+    return Boolean(user?.permissions?.includes(module));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, hasPerm }}>
       {children}
     </AuthContext.Provider>
   );

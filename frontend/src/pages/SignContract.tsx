@@ -13,6 +13,7 @@ interface ContractData {
   depositAmount: number;
   rentDueDay: number;
   notes?: string;
+  customTerms?: string;
   unit: { unitNumber: string };
   property: { name: string; address: string };
   tenant: { name: string };
@@ -27,6 +28,16 @@ export default function SignContract() {
   const [agreed, setAgreed] = useState(false);
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
+  const [idDocument, setIdDocument] = useState('');
+
+  function handleIdFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { setError('證件影像不可超過 8MB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setIdDocument(reader.result as string);
+    reader.readAsDataURL(file);
+  }
 
   useEffect(() => {
     api.get(`/contracts/sign/${token}`)
@@ -40,10 +51,10 @@ export default function SignContract() {
   }, [token]);
 
   async function handleSign() {
-    if (!signerName.trim() || !agreed) return;
+    if (!signerName.trim() || !agreed || !idDocument) return;
     setSigning(true);
     try {
-      await api.post(`/contracts/sign/${token}`, { signerName: signerName.trim(), agreed: true });
+      await api.post(`/contracts/sign/${token}`, { signerName: signerName.trim(), agreed: true, idDocument });
       setDone(true);
     } catch (e: any) {
       setError(e.response?.data?.error ?? '簽署失敗，請稍後再試');
@@ -121,7 +132,7 @@ export default function SignContract() {
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="bg-warm rounded-xl p-3">
-              <div className="text-xs text-gray-400 mb-1">房間號碼</div>
+              <div className="text-xs text-gray-400 mb-1">倉庫號碼</div>
               <div className="font-semibold text-gray-700">{contract!.unit.unitNumber}</div>
             </div>
             <div className="bg-warm rounded-xl p-3">
@@ -157,13 +168,21 @@ export default function SignContract() {
         {/* Terms */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
           <h3 className="font-semibold text-gray-700 text-sm mb-3">租賃條款摘要</h3>
-          <ul className="text-xs text-gray-500 space-y-2 list-none">
-            <li className="flex gap-2"><span className="text-brand font-bold">1.</span>租客同意按月繳納租金，每月 {contract!.rentDueDay} 日前完成繳款。</li>
-            <li className="flex gap-2"><span className="text-brand font-bold">2.</span>押金 NT${Number(contract!.depositAmount).toLocaleString()} 於合約結束時退還（扣除損壞費用）。</li>
-            <li className="flex gap-2"><span className="text-brand font-bold">3.</span>租客應妥善保管房屋，不得擅自改裝或轉租。</li>
-            <li className="flex gap-2"><span className="text-brand font-bold">4.</span>提前終止合約需提前一個月書面通知房東。</li>
-            <li className="flex gap-2"><span className="text-brand font-bold">5.</span>本電子簽署具有與書面簽名同等之法律效力。</li>
-          </ul>
+          {contract!.customTerms && contract!.customTerms.trim() ? (
+            <ul className="text-xs text-gray-500 space-y-2 list-none">
+              {contract!.customTerms.split('\n').map((line) => line.trim()).filter(Boolean).map((line, i) => (
+                <li key={i} className="flex gap-2"><span className="text-brand font-bold">{i + 1}.</span>{line}</li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="text-xs text-gray-500 space-y-2 list-none">
+              <li className="flex gap-2"><span className="text-brand font-bold">1.</span>租客同意按月繳納租金，每月 {contract!.rentDueDay} 日前完成繳款。</li>
+              <li className="flex gap-2"><span className="text-brand font-bold">2.</span>押金 NT${Number(contract!.depositAmount).toLocaleString()} 於合約結束時退還（扣除損壞費用）。</li>
+              <li className="flex gap-2"><span className="text-brand font-bold">3.</span>租客應妥善保管房屋，不得擅自改裝或轉租。</li>
+              <li className="flex gap-2"><span className="text-brand font-bold">4.</span>提前終止合約需提前一個月書面通知房東。</li>
+              <li className="flex gap-2"><span className="text-brand font-bold">5.</span>本電子簽署具有與書面簽名同等之法律效力。</li>
+            </ul>
+          )}
         </div>
 
         {/* Signature form */}
@@ -178,6 +197,22 @@ export default function SignContract() {
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand"
               placeholder="請輸入您的全名"
             />
+          </div>
+          <div className="mb-4">
+            <label className="block text-xs text-gray-500 mb-1.5">上傳證件影像（身分驗證，必填）</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleIdFile}
+              className="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand file:text-white file:text-xs file:font-medium hover:file:bg-brand-dark"
+            />
+            {idDocument && (
+              <div className="mt-2">
+                <img src={idDocument} alt="證件預覽" className="w-full max-h-40 object-contain rounded-xl border border-gray-200" />
+                <p className="text-xs text-green-600 mt-1">✓ 證件已選取</p>
+              </div>
+            )}
+            <p className="text-xs text-gray-300 mt-1">支援 JPG/PNG，單張 8MB 內。證件僅供房東核對身分用。</p>
           </div>
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -194,7 +229,7 @@ export default function SignContract() {
 
         <button
           onClick={handleSign}
-          disabled={!signerName.trim() || !agreed || signing}
+          disabled={!signerName.trim() || !agreed || !idDocument || signing}
           className="w-full py-3.5 bg-brand text-white font-semibold rounded-2xl text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-dark transition-colors"
         >
           {signing ? '簽署中...' : '確認簽署合約'}

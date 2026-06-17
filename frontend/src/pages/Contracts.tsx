@@ -15,6 +15,7 @@ export default function Contracts() {
   const [filter, setFilter] = useState<FilterType>('active');
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [editContract, setEditContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [signResult, setSignResult] = useState<{ contractId: string; signUrl: string; sent: boolean } | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
@@ -225,9 +226,17 @@ export default function Contracts() {
 
                 {/* Sign status */}
                 {c.signedAt ? (
-                  <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded-lg px-2.5 py-1.5 mb-2 w-fit">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    已電子簽署 · {new Date(c.signedAt).toLocaleDateString('zh-TW')}
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded-lg px-2.5 py-1.5 w-fit">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      已電子簽署 · {new Date(c.signedAt).toLocaleDateString('zh-TW')}
+                    </div>
+                    {c.signerIdDocument && (
+                      <a href={c.signerIdDocument} target="_blank" rel="noreferrer"
+                        className="text-xs text-brand border border-brand/30 rounded-lg px-2.5 py-1.5 hover:bg-brand/5 transition-colors">
+                        查看證件
+                      </a>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 rounded-lg px-2.5 py-1.5 mb-2 w-fit">
@@ -252,6 +261,18 @@ export default function Contracts() {
 
                 {c.status === 'ACTIVE' && (
                   <div className="flex gap-2 flex-wrap">
+                    {!c.signedAt ? (
+                      <button
+                        onClick={() => setEditContract(c)}
+                        className="text-xs px-3 py-1.5 border border-brand/30 rounded-lg text-brand hover:bg-brand/5 transition-colors flex items-center gap-1"
+                      >
+                        <FileSignature className="w-3 h-3" />編輯
+                      </button>
+                    ) : (
+                      <span className="text-xs px-3 py-1.5 text-gray-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />已簽署鎖定
+                      </span>
+                    )}
                     {!c.signedAt && (
                       <button
                         onClick={() => sendSignInvite(c.id)}
@@ -338,6 +359,16 @@ export default function Contracts() {
         />
       )}
 
+      {editContract && (
+        <AddContractModal
+          units={allUnits}
+          tenants={tenants}
+          editing={editContract}
+          onClose={() => setEditContract(null)}
+          onSaved={() => { setEditContract(null); fetchAll(); }}
+        />
+      )}
+
       {depositModal && (
         <DepositRefundModal
           contract={depositModal}
@@ -357,44 +388,60 @@ export default function Contracts() {
   );
 }
 
-function AddContractModal({ units, tenants, onClose, onSaved }: {
+function AddContractModal({ units, tenants, editing, onClose, onSaved }: {
   units: Array<Unit & { propertyName: string }>;
   tenants: Tenant[];
+  editing?: Contract | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const isEdit = Boolean(editing);
   const [form, setForm] = useState({
-    unitId: '',
-    tenantId: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    monthlyRent: '',
-    depositAmount: '',
-    rentDueDay: '5',
-    notes: '',
+    unitId: editing?.unitId ?? '',
+    tenantId: editing?.tenantId ?? '',
+    startDate: editing ? new Date(editing.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    endDate: editing ? new Date(editing.endDate).toISOString().split('T')[0] : '',
+    monthlyRent: editing ? String(editing.monthlyRent) : '',
+    depositAmount: editing ? String(editing.depositAmount) : '',
+    rentDueDay: editing ? String(editing.rentDueDay) : '5',
+    notes: editing?.notes ?? '',
+    customTerms: editing?.customTerms ?? '',
   });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await api.post('/contracts', form);
-    onSaved();
+    setSaving(true);
+    setError('');
+    try {
+      if (isEdit) {
+        await api.put(`/contracts/${editing!.id}`, form);
+      } else {
+        await api.post('/contracts', form);
+      }
+      onSaved();
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? '儲存失敗');
+    } finally {
+      setSaving(false);
+    }
   }
-
-  const selectedUnit = units.find((u) => u.id === form.unitId);
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg">新增合約</h3>
+          <h3 className="font-bold text-lg">{isEdit ? '編輯合約' : '新增合約'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-sm font-medium mb-1">房間 <span className="text-red-400">*</span></label>
             <select
-              className="input"
+              className="input disabled:bg-gray-100 disabled:text-gray-400"
               value={form.unitId}
+              disabled={isEdit}
               onChange={(e) => {
                 const u = units.find((u) => u.id === e.target.value);
                 setForm({ ...form, unitId: e.target.value, monthlyRent: u ? String(u.monthlyRent) : form.monthlyRent });
@@ -409,11 +456,12 @@ function AddContractModal({ units, tenants, onClose, onSaved }: {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">租客 <span className="text-red-400">*</span></label>
-            <select className="input" value={form.tenantId} onChange={(e) => setForm({ ...form, tenantId: e.target.value })} required>
+            <select className="input disabled:bg-gray-100 disabled:text-gray-400" value={form.tenantId} disabled={isEdit} onChange={(e) => setForm({ ...form, tenantId: e.target.value })} required>
               <option value="">請選擇租客</option>
               {tenants.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.phone}</option>)}
             </select>
           </div>
+          {isEdit && <p className="text-xs text-gray-400 -mt-1">房間與租客建立後不可變更</p>}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-sm font-medium mb-1">開始日期 <span className="text-red-400">*</span></label>
@@ -442,9 +490,17 @@ function AddContractModal({ units, tenants, onClose, onSaved }: {
             <label className="block text-sm font-medium mb-1">備註</label>
             <textarea className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="選填" />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">自訂租賃條款</label>
+            <textarea className="input" value={form.customTerms} onChange={(e) => setForm({ ...form, customTerms: e.target.value })} rows={4} placeholder="每行一條，留空則簽約頁顯示系統預設條款" />
+            <p className="text-xs text-gray-400 mt-1">填寫後，租客簽約頁將顯示此處的條款（取代預設條款）</p>
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button>
-            <button type="submit" className="btn-primary flex-1">新增合約</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
+              {saving ? '儲存中...' : isEdit ? '儲存變更' : '新增合約'}
+            </button>
           </div>
         </form>
       </div>

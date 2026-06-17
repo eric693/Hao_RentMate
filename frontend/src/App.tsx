@@ -19,11 +19,19 @@ import SignContract from './pages/SignContract';
 import Listings from './pages/Listings';
 import ROIAnalysis from './pages/ROIAnalysis';
 import RentComps from './pages/RentComps';
+import TenantLogin from './pages/TenantLogin';
+import TenantPortal from './pages/TenantPortal';
+import UserManagement from './pages/UserManagement';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen text-gray-400">載入中...</div>;
   return user ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 export default function App() {
@@ -33,6 +41,9 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/sign/:token" element={<SignContract />} />
+          {/* 租客端（綁定碼登入，獨立 tenantToken） */}
+          <Route path="/tenant/login" element={<TenantLogin />} />
+          <Route path="/tenant" element={<TenantPortal />} />
           <Route
             path="/"
             element={
@@ -57,6 +68,7 @@ export default function App() {
             <Route path="market" element={<RentComps />} />
             <Route path="maintenance" element={<Maintenance />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="users" element={<AdminRoute><UserManagement /></AdminRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -7,14 +7,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   name      String
+  role      UserRole @default(ADMIN)
+  ownerId   String?  // STAFF：所屬管理員(資料擁有者) id；ADMIN：null（資料擁有者為自己）
+  permissions String[] @default([]) // STAFF 可存取的模組鍵；ADMIN 不受限
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  owner            User?    @relation("OwnerStaff", fields: [ownerId], references: [id], onDelete: Cascade)
+  staff            User[]   @relation("OwnerStaff")
   properties       Property[]
   tenants          Tenant[]
   lineBinding      LineBinding?
@@ -96,9 +106,11 @@ model Contract {
   rentDueDay    Int            @default(5)
   status        ContractStatus @default(ACTIVE)
   notes         String?
+  customTerms   String?        // 房東自訂租賃條款（每行一條）；空值時簽署頁顯示預設條款
   signToken     String?        @unique
   signedAt      DateTime?
   signerName    String?
+  signerIdDocument String?      // 簽署時上傳的證件影像路徑（身分驗證用）
   createdAt     DateTime       @default(now())
 
   // 合規檢查結果（內政部定型化契約應記載/不得記載事項）

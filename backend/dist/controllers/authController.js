@@ -23,7 +23,7 @@ async function register(req, res) {
     const hash = await bcryptjs_1.default.hash(password, 10);
     const user = await app_1.prisma.user.create({ data: { email, password: hash, name } });
     const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: user.permissions } });
 }
 async function login(req, res) {
     const { email, password } = req.body;
@@ -33,12 +33,12 @@ async function login(req, res) {
         return;
     }
     const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: user.permissions } });
 }
 async function me(req, res) {
     const user = await app_1.prisma.user.findUnique({
-        where: { id: req.userId },
-        select: { id: true, email: true, name: true, createdAt: true },
+        where: { id: req.authUserId },
+        select: { id: true, email: true, name: true, role: true, permissions: true, createdAt: true },
     });
     res.json(user);
 }

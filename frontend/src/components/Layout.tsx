@@ -17,6 +17,7 @@ import {
   Megaphone,
   TrendingUp,
   LineChart,
+  UserCog,
 } from 'lucide-react';
 
 const FINANCE_ITEMS = [
@@ -30,7 +31,7 @@ const FINANCE_ITEMS = [
 ];
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, hasPerm } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [financeOpen, setFinanceOpen] = useState(location.pathname.startsWith('/finance'));
@@ -71,14 +72,14 @@ export default function Layout() {
               <Building2 className="w-3.5 h-3.5 text-gray-400" />
               <span className="text-xs text-gray-400">目前工作區</span>
             </div>
-            <span className="text-xs bg-brand/10 text-brand px-1.5 py-0.5 rounded-full font-medium">擁有者</span>
+            <span className="text-xs bg-brand/10 text-brand px-1.5 py-0.5 rounded-full font-medium">{isAdmin ? '擁有者' : '員工'}</span>
           </div>
           <div className="font-semibold text-gray-700 text-sm">{user?.name}</div>
           <div className="flex items-center gap-1.5 mt-1">
             <div className="w-5 h-5 bg-brand rounded-full flex items-center justify-center">
               <span className="text-white text-xs font-bold">{user?.name?.charAt(0)}</span>
             </div>
-            <span className="text-xs text-gray-400">擁有者登入中</span>
+            <span className="text-xs text-gray-400">{isAdmin ? '擁有者登入中' : '員工登入中'}</span>
           </div>
         </div>
 
@@ -97,49 +98,52 @@ export default function Layout() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
           <SidebarLink to="/" label="總覽" icon={LayoutDashboard} exact />
-          <SidebarLink to="/properties" label="房務" icon={Building2} />
-          <SidebarLink to="/tenants" label="租客" icon={Users} />
+          {hasPerm('properties') && <SidebarLink to="/properties" label="房務" icon={Building2} />}
+          {hasPerm('tenants') && <SidebarLink to="/tenants" label="租客" icon={Users} />}
 
           {/* 帳務 submenu */}
-          <div>
-            <button
-              onClick={() => setFinanceOpen(!financeOpen)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                isFinanceActive ? 'bg-brand text-white' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <CreditCard className="w-4 h-4" />
-                帳務
-              </div>
-              <ChevronDown className={`w-3 h-3 transition-transform ${financeOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {financeOpen && (
-              <div className="ml-3 mt-0.5 border-l-2 border-gray-100 pl-3 space-y-0.5">
-                {FINANCE_ITEMS.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.exact}
-                    className={({ isActive }) =>
-                      `block px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        isActive ? 'text-brand bg-brand/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
+          {hasPerm('finance') && (
+            <div>
+              <button
+                onClick={() => setFinanceOpen(!financeOpen)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  isFinanceActive ? 'bg-brand text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <CreditCard className="w-4 h-4" />
+                  帳務
+                </div>
+                <ChevronDown className={`w-3 h-3 transition-transform ${financeOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {financeOpen && (
+                <div className="ml-3 mt-0.5 border-l-2 border-gray-100 pl-3 space-y-0.5">
+                  {FINANCE_ITEMS.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.exact}
+                      className={({ isActive }) =>
+                        `block px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          isActive ? 'text-brand bg-brand/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-          <SidebarLink to="/listings" label="空房刊登" icon={Megaphone} />
-          <SidebarLink to="/roi" label="投報分析" icon={TrendingUp} />
-          <SidebarLink to="/market" label="租金行情" icon={LineChart} />
-          <SidebarLink to="/maintenance" label="報修" icon={Wrench} />
-          <SidebarLink to="/contracts" label="合約" icon={FileText} />
-          <SidebarLink to="/settings" label="設定" icon={Settings} />
+          {hasPerm('listings') && <SidebarLink to="/listings" label="空房刊登" icon={Megaphone} />}
+          {hasPerm('roi') && <SidebarLink to="/roi" label="投報分析" icon={TrendingUp} />}
+          {hasPerm('market') && <SidebarLink to="/market" label="租金行情" icon={LineChart} />}
+          {hasPerm('maintenance') && <SidebarLink to="/maintenance" label="報修" icon={Wrench} />}
+          {hasPerm('contracts') && <SidebarLink to="/contracts" label="合約" icon={FileText} />}
+          {hasPerm('settings') && <SidebarLink to="/settings" label="設定" icon={Settings} />}
+          {isAdmin && <SidebarLink to="/users" label="使用者管理" icon={UserCog} />}
         </nav>
 
         {/* Bottom tip */}
