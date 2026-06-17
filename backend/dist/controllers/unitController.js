@@ -70,6 +70,11 @@ async function deleteUnit(req, res) {
         res.status(404).json({ error: '找不到房間' });
         return;
     }
+    const contractCount = await app_1.prisma.contract.count({ where: { unitId: id } });
+    if (contractCount > 0) {
+        res.status(409).json({ error: `此房間有 ${contractCount} 份合約，請先刪除合約後再刪除房間` });
+        return;
+    }
     await app_1.prisma.unit.delete({ where: { id } });
     res.json({ success: true });
 }

@@ -67,6 +67,11 @@ async function deleteProperty(req, res) {
         res.status(404).json({ error: '找不到物業' });
         return;
     }
+    const unitCount = await app_1.prisma.unit.count({ where: { propertyId: id } });
+    if (unitCount > 0) {
+        res.status(409).json({ error: `此物業底下有 ${unitCount} 個房間，請先刪除房間後再刪除物業` });
+        return;
+    }
     await app_1.prisma.property.delete({ where: { id } });
     res.json({ success: true });
 }

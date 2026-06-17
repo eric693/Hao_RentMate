@@ -11,6 +11,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const client_1 = require("@prisma/client");
 const index_1 = __importDefault(require("./routes/index"));
+const errorHandler_1 = require("./middleware/errorHandler");
 const reminderCron_1 = require("./jobs/reminderCron");
 exports.prisma = new client_1.PrismaClient();
 // 上傳目錄（維修照片等，對外靜態服務）
@@ -28,8 +29,10 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json({ limit: '15mb' }));
 // 靜態服務上傳檔案
 app.use('/uploads', express_1.default.static(exports.UPLOAD_DIR));
-app.use('/api', index_1.default);
+app.use('/api', (0, errorHandler_1.wrapAsyncRouter)(index_1.default));
 app.get('/health', (_req, res) => res.json({ ok: true }));
+// 全域錯誤處理（須放在所有路由之後）
+app.use(errorHandler_1.errorHandler);
 const PORT = Number(process.env.PORT ?? 3001);
 app.listen(PORT, () => {
     console.log(`RentMate API running on http://localhost:${PORT}`);

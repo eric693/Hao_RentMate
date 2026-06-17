@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import routes from './routes/index';
+import { wrapAsyncRouter, errorHandler } from './middleware/errorHandler';
 import { startReminderJobs } from './jobs/reminderCron';
 
 export const prisma = new PrismaClient();
@@ -29,9 +30,12 @@ app.use(express.json({ limit: '15mb' }));
 // 靜態服務上傳檔案
 app.use('/uploads', express.static(UPLOAD_DIR));
 
-app.use('/api', routes);
+app.use('/api', wrapAsyncRouter(routes));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
+
+// 全域錯誤處理（須放在所有路由之後）
+app.use(errorHandler);
 
 const PORT = Number(process.env.PORT ?? 3001);
 
