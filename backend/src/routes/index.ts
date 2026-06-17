@@ -13,7 +13,7 @@ import { getVacantUnits, addListing, updateListing, deleteListing } from '../con
 import { getReminderSettings, updateReminderSettings, triggerReminders } from '../controllers/reminderController';
 import { getRentRecords, confirmPayment, markOverdue, sendReminder } from '../controllers/rentController';
 import { getMaintenanceRequests, createMaintenanceRequest, updateMaintenanceRequest } from '../controllers/maintenanceController';
-import { getExpenses, createExpense, deleteExpense, confirmExpense, getExpenseTrend } from '../controllers/expenseController';
+import { getExpenses, createExpense, updateExpense, deleteExpense, confirmExpense, getExpenseTrend } from '../controllers/expenseController';
 import { webhook, getLandlordBinding, generateLandlordBindingCode, unbindLandlord, getTenantBindings } from '../controllers/lineController';
 import { getCalendarEvents } from '../controllers/calendarController';
 import { getCollectionWorkbench, getFinanceOverview } from '../controllers/collectionWorkbenchController';
@@ -32,7 +32,7 @@ import {
   getHandoverByToken, confirmHandoverByToken, tenantHandovers, tenantConfirmHandover,
 } from '../controllers/handoverController';
 import {
-  previewUtilitySplit, createUtilityBill, getUtilityBills, billUtilityToTenants,
+  previewUtilitySplit, createUtilityBill, updateUtilityBill, getUtilityBills, billUtilityToTenants,
 } from '../controllers/utilityBillController';
 import { getTenantCredit, getTenantsCreditOverview, getMyCredit } from '../controllers/creditController';
 import { getRentComps, getUnitPricing } from '../controllers/rentCompsController';
@@ -127,6 +127,7 @@ router.post('/maintenance/:id/analyze', ...can('maintenance'), analyzeMaintenanc
 router.get('/expenses', ...can('finance'), getExpenses);
 router.post('/expenses', ...can('finance'), createExpense);
 router.put('/expenses/:id/confirm', ...can('finance'), confirmExpense);
+router.put('/expenses/:id', ...can('finance'), updateExpense);
 router.delete('/expenses/:id', ...can('finance'), deleteExpense);
 router.get('/expenses/trend', ...can('finance'), getExpenseTrend);
 
@@ -144,6 +145,7 @@ router.get('/tax-export/precheck', ...can('finance'), taxPrecheck);
 router.get('/utility-bills', ...can('finance'), getUtilityBills);
 router.post('/utility-bills/preview', ...can('finance'), previewUtilitySplit);
 router.post('/utility-bills', ...can('finance'), createUtilityBill);
+router.put('/utility-bills/:id', ...can('finance'), updateUtilityBill);
 router.post('/utility-bills/:id/bill', ...can('finance'), billUtilityToTenants);
 
 // Rent comps（租金行情）

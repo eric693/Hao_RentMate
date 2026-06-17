@@ -6,6 +6,7 @@ import { Expense, Property } from '../types';
 interface Allocation { unitId: string; unitNumber: string; amount: number; basis: number | null }
 interface UtilityBill {
   id: string;
+  propertyId: string;
   category: string;
   periodStart: string;
   periodEnd: string;
@@ -32,6 +33,7 @@ export default function UtilityBills() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showSplit, setShowSplit] = useState(false);
+  const [editBill, setEditBill] = useState<UtilityBill | null>(null);
   const [bills, setBills] = useState<UtilityBill[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -192,9 +194,12 @@ export default function UtilityBills() {
                 {b.allocations.every((a) => a.billed) ? (
                   <span className="text-xs text-green-600">已開帳通知租客</span>
                 ) : (
-                  <button onClick={() => billToTenants(b.id)} className="btn-secondary text-xs flex items-center gap-1">
-                    <Send className="w-3.5 h-3.5" />LINE 開帳給租客
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditBill(b)} className="btn-secondary text-xs">編輯</button>
+                    <button onClick={() => billToTenants(b.id)} className="btn-secondary text-xs flex items-center gap-1">
+                      <Send className="w-3.5 h-3.5" />LINE 開帳給租客
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -218,25 +223,36 @@ export default function UtilityBills() {
           onSaved={() => { setShowSplit(false); fetchData(); }}
         />
       )}
+
+      {editBill && (
+        <SplitModal
+          properties={properties}
+          editing={editBill}
+          onClose={() => setEditBill(null)}
+          onSaved={() => { setEditBill(null); fetchData(); }}
+        />
+      )}
     </div>
   );
 }
 
-function SplitModal({ properties, onClose, onSaved }: {
+function SplitModal({ properties, editing, onClose, onSaved }: {
   properties: Property[];
+  editing?: UtilityBill | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const isEdit = Boolean(editing);
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
   const [form, setForm] = useState({
-    propertyId: properties[0]?.id ?? '',
-    category: 'ELECTRICITY',
-    periodStart: firstDay,
-    periodEnd: lastDay,
-    totalAmount: '',
-    method: 'EVEN',
+    propertyId: editing?.propertyId ?? properties[0]?.id ?? '',
+    category: editing?.category ?? 'ELECTRICITY',
+    periodStart: editing ? new Date(editing.periodStart).toISOString().split('T')[0] : firstDay,
+    periodEnd: editing ? new Date(editing.periodEnd).toISOString().split('T')[0] : lastDay,
+    totalAmount: editing ? String(editing.totalAmount) : '',
+    method: editing?.method ?? 'EVEN',
   });
   const [usage, setUsage] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<Allocation[] | null>(null);
@@ -263,14 +279,15 @@ function SplitModal({ properties, onClose, onSaved }: {
   async function submit() {
     setSaving(true);
     try {
-      await api.post('/utility-bills', {
-        ...form,
-        totalAmount: Number(form.totalAmount),
-        inputs: inputsPayload(),
-      });
+      const payload = { ...form, totalAmount: Number(form.totalAmount), inputs: inputsPayload() };
+      if (isEdit) {
+        await api.put(`/utility-bills/${editing!.id}`, payload);
+      } else {
+        await api.post('/utility-bills', payload);
+      }
       onSaved();
     } catch (e: any) {
-      alert(e.response?.data?.error ?? '建立失敗');
+      alert(e.response?.data?.error ?? (isEdit ? '更新失敗' : '建立失敗'));
     } finally {
       setSaving(false);
     }
@@ -280,7 +297,7 @@ function SplitModal({ properties, onClose, onSaved }: {
     <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg flex items-center gap-2"><Split className="w-5 h-5 text-brand" />水電費分攤</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2"><Split className="w-5 h-5 text-brand" />{isEdit ? '編輯分攤帳單' : '水電費分攤'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-3">
@@ -362,7 +379,7 @@ function SplitModal({ properties, onClose, onSaved }: {
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button>
-            <button type="button" onClick={submit} disabled={saving || !form.totalAmount} className="btn-primary flex-1 disabled:opacity-50">{saving ? '建立中...' : '建立分攤帳單'}</button>
+            <button type="button" onClick={submit} disabled={saving || !form.totalAmount} className="btn-primary flex-1 disabled:opacity-50">{saving ? '儲存中...' : isEdit ? '儲存變更' : '建立分攤帳單'}</button>
           </div>
         </div>
       </div>

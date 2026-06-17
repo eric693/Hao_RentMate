@@ -103,6 +103,7 @@ router.post('/maintenance/:id/analyze', ...can('maintenance'), maintenanceContro
 router.get('/expenses', ...can('finance'), expenseController_1.getExpenses);
 router.post('/expenses', ...can('finance'), expenseController_1.createExpense);
 router.put('/expenses/:id/confirm', ...can('finance'), expenseController_1.confirmExpense);
+router.put('/expenses/:id', ...can('finance'), expenseController_1.updateExpense);
 router.delete('/expenses/:id', ...can('finance'), expenseController_1.deleteExpense);
 router.get('/expenses/trend', ...can('finance'), expenseController_1.getExpenseTrend);
 // Calendar（任何登入者）
@@ -117,6 +118,7 @@ router.get('/tax-export/precheck', ...can('finance'), taxExportController_2.taxP
 router.get('/utility-bills', ...can('finance'), utilityBillController_1.getUtilityBills);
 router.post('/utility-bills/preview', ...can('finance'), utilityBillController_1.previewUtilitySplit);
 router.post('/utility-bills', ...can('finance'), utilityBillController_1.createUtilityBill);
+router.put('/utility-bills/:id', ...can('finance'), utilityBillController_1.updateUtilityBill);
 router.post('/utility-bills/:id/bill', ...can('finance'), utilityBillController_1.billUtilityToTenants);
 // Rent comps（租金行情）
 router.get('/rent-comps', ...can('market'), rentCompsController_1.getRentComps);

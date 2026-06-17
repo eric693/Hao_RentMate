@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.previewUtilitySplit = previewUtilitySplit;
 exports.createUtilityBill = createUtilityBill;
+exports.updateUtilityBill = updateUtilityBill;
 exports.getUtilityBills = getUtilityBills;
 exports.billUtilityToTenants = billUtilityToTenants;
 const app_1 = require("../app");
@@ -61,6 +62,56 @@ async function createUtilityBill(req, res) {
         include: { allocations: { include: { unit: true } } },
     });
     res.status(201).json(bill);
+}
+// 編輯水電分攤帳單（僅限尚未開帳給租客者；會以新參數重算分攤）
+async function updateUtilityBill(req, res) {
+    const { id } = req.params;
+    const bill = await app_1.prisma.utilityBill.findFirst({
+        where: { id, property: { userId: req.userId } },
+        include: { allocations: true },
+    });
+    if (!bill) {
+        res.status(404).json({ error: '找不到帳單' });
+        return;
+    }
+    if (bill.allocations.some((a) => a.billed)) {
+        res.status(400).json({ error: '已開帳給租客的帳單不可編輯' });
+        return;
+    }
+    const { category, periodStart, periodEnd, totalAmount, method, inputs, note } = req.body;
+    const newCategory = category ?? bill.category;
+    const newMethod = (method ?? bill.method);
+    const newTotal = totalAmount !== undefined && totalAmount !== '' ? Number(totalAmount) : Number(bill.totalAmount);
+    if (!['WATER', 'ELECTRICITY', 'GAS'].includes(newCategory)) {
+        res.status(400).json({ error: '類別須為 WATER/ELECTRICITY/GAS' });
+        return;
+    }
+    if (!SPLIT_METHODS.includes(newMethod)) {
+        res.status(400).json({ error: '分攤方法無效' });
+        return;
+    }
+    const allocations = await (0, utilityService_1.computeAllocations)(bill.propertyId, newTotal, newMethod, inputs ?? []);
+    if (allocations.length === 0) {
+        res.status(400).json({ error: '此物業目前無在住房間可分攤' });
+        return;
+    }
+    await app_1.prisma.utilityAllocation.deleteMany({ where: { utilityBillId: id } });
+    const updated = await app_1.prisma.utilityBill.update({
+        where: { id },
+        data: {
+            category: newCategory,
+            method: newMethod,
+            totalAmount: newTotal,
+            periodStart: periodStart ? new Date(periodStart) : undefined,
+            periodEnd: periodEnd ? new Date(periodEnd) : undefined,
+            note: note !== undefined ? note : undefined,
+            allocations: {
+                create: allocations.map((a) => ({ unitId: a.unitId, amount: a.amount, basis: a.basis ?? undefined })),
+            },
+        },
+        include: { allocations: { include: { unit: true } } },
+    });
+    res.json(updated);
 }
 // 列出水電單
 async function getUtilityBills(req, res) {

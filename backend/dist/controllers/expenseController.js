@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getExpenses = getExpenses;
 exports.createExpense = createExpense;
 exports.confirmExpense = confirmExpense;
+exports.updateExpense = updateExpense;
 exports.deleteExpense = deleteExpense;
 exports.getExpenseTrend = getExpenseTrend;
 const app_1 = require("../app");
@@ -15,6 +16,7 @@ async function getExpenses(req, res) {
     const expenses = await app_1.prisma.expense.findMany({
         where: {
             OR: [
+                { userId: req.userId },
                 { propertyId: { in: propertyIds } },
                 { unitId: { in: unitIds } },
             ],
@@ -47,7 +49,7 @@ async function createExpense(req, res) {
         }
     }
     const expense = await app_1.prisma.expense.create({
-        data: { propertyId, unitId, category, amount: Number(amount), date: new Date(date), description },
+        data: { userId: req.userId, propertyId, unitId, category, amount: Number(amount), date: new Date(date), description },
     });
     res.status(201).json(expense);
 }
@@ -64,14 +66,48 @@ async function confirmExpense(req, res) {
         res.status(404).json({ error: '找不到支出' });
         return;
     }
-    const ownerId = expense.property?.userId ?? expense.unit?.property.userId;
-    if (ownerId !== req.userId) {
+    const owns = expense.userId === req.userId
+        || expense.property?.userId === req.userId
+        || expense.unit?.property.userId === req.userId;
+    if (!owns) {
         res.status(403).json({ error: '無權限' });
         return;
     }
     const updated = await app_1.prisma.expense.update({
         where: { id },
         data: { confirmedAt: expense.confirmedAt ? null : new Date() },
+    });
+    res.json(updated);
+}
+async function updateExpense(req, res) {
+    const { id } = req.params;
+    const expense = await app_1.prisma.expense.findFirst({
+        where: { id },
+        include: {
+            property: { select: { userId: true } },
+            unit: { include: { property: { select: { userId: true } } } },
+        },
+    });
+    if (!expense) {
+        res.status(404).json({ error: '找不到支出' });
+        return;
+    }
+    const owns = expense.userId === req.userId
+        || expense.property?.userId === req.userId
+        || expense.unit?.property.userId === req.userId;
+    if (!owns) {
+        res.status(403).json({ error: '無權限' });
+        return;
+    }
+    const { category, amount, date, description } = req.body;
+    const updated = await app_1.prisma.expense.update({
+        where: { id },
+        data: {
+            category: category ?? undefined,
+            amount: amount !== undefined && amount !== '' ? Number(amount) : undefined,
+            date: date ? new Date(date) : undefined,
+            description: description !== undefined ? description : undefined,
+        },
     });
     res.json(updated);
 }
@@ -88,8 +124,10 @@ async function deleteExpense(req, res) {
         res.status(404).json({ error: '找不到支出' });
         return;
     }
-    const ownerId = expense.property?.userId ?? expense.unit?.property.userId;
-    if (ownerId !== req.userId) {
+    const owns = expense.userId === req.userId
+        || expense.property?.userId === req.userId
+        || expense.unit?.property.userId === req.userId;
+    if (!owns) {
         res.status(403).json({ error: '無權限' });
         return;
     }

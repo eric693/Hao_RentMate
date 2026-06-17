@@ -256,6 +256,7 @@ enum MaintenanceStatus {
 
 model Expense {
   id          String          @id @default(cuid())
+  userId      String?         // 支出擁有者（資料擁有者 id）；未綁定 property/unit 的支出靠此判斷歸屬
   propertyId  String?
   unitId      String?
   category    ExpenseCategory
@@ -267,6 +268,8 @@ model Expense {
 
   property Property? @relation(fields: [propertyId], references: [id])
   unit     Unit?     @relation(fields: [unitId], references: [id])
+
+  @@index([userId])
 }
 
 enum ExpenseCategory {

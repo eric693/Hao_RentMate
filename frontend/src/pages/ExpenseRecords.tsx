@@ -16,6 +16,7 @@ export default function ExpenseRecords() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchData(); }, [year, month]);
@@ -93,7 +94,8 @@ export default function ExpenseRecords() {
                   <td className="px-4 py-3 text-gray-500">{e.description || '—'}</td>
                   <td className="px-4 py-3 text-gray-500">{new Date(e.date).toLocaleDateString('zh-TW')}</td>
                   <td className="px-4 py-3 text-right font-semibold text-gray-700">NT${Number(e.amount).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button onClick={() => setEditExpense(e)} className="text-xs text-brand hover:text-brand-dark mr-3">編輯</button>
                     <button onClick={() => deleteExpense(e.id)} className="text-xs text-red-400 hover:text-red-600">刪除</button>
                   </td>
                 </tr>
@@ -109,21 +111,39 @@ export default function ExpenseRecords() {
           onSaved={() => { setShowAdd(false); fetchData(); }}
         />
       )}
+
+      {editExpense && (
+        <AddExpenseModal
+          editing={editExpense}
+          onClose={() => setEditExpense(null)}
+          onSaved={() => { setEditExpense(null); fetchData(); }}
+        />
+      )}
     </div>
   );
 }
 
-function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ category: 'MANAGEMENT', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
+function AddExpenseModal({ editing, onClose, onSaved }: { editing?: Expense | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = Boolean(editing);
+  const [form, setForm] = useState({
+    category: (editing?.category ?? 'MANAGEMENT') as string,
+    amount: editing ? String(editing.amount) : '',
+    date: editing ? new Date(editing.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    description: editing?.description ?? '',
+  });
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await api.post('/expenses', form);
+    if (isEdit) {
+      await api.put(`/expenses/${editing!.id}`, form);
+    } else {
+      await api.post('/expenses', form);
+    }
     onSaved();
   }
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl">
-        <h3 className="font-bold text-lg mb-4">新增支出</h3>
+        <h3 className="font-bold text-lg mb-4">{isEdit ? '編輯支出' : '新增支出'}</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">類別</label>
@@ -149,7 +169,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           </div>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button>
-            <button type="submit" className="btn-primary flex-1">新增</button>
+            <button type="submit" className="btn-primary flex-1">{isEdit ? '儲存' : '新增'}</button>
           </div>
         </form>
       </div>
