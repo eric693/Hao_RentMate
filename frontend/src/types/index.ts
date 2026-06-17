@@ -22,6 +22,9 @@ export interface Unit {
   type?: string;
   monthlyRent: number;
   status: 'VACANT' | 'OCCUPIED';
+  areaPing?: number;
+  tempControl?: string;
+  palletSlots?: number;
   contracts?: Contract[];
   maintenanceRequests?: MaintenanceRequest[];
 }

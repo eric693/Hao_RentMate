@@ -36,13 +36,18 @@ async function createUnit(req, res) {
         res.status(404).json({ error: '找不到物業' });
         return;
     }
-    const { unitNumber, floor, type, monthlyRent, description } = req.body;
+    const { unitNumber, floor, type, monthlyRent, description, areaPing, tempControl, palletSlots } = req.body;
     if (!unitNumber || !monthlyRent) {
-        res.status(400).json({ error: '請填寫房號與月租金' });
+        res.status(400).json({ error: '請填寫倉庫編號與月租金' });
         return;
     }
     const unit = await app_1.prisma.unit.create({
-        data: { propertyId, unitNumber, floor: floor ? Number(floor) : null, type, monthlyRent, description },
+        data: {
+            propertyId, unitNumber, floor: floor ? Number(floor) : null, type, monthlyRent, description,
+            areaPing: areaPing !== undefined && areaPing !== '' ? Number(areaPing) : null,
+            tempControl: tempControl || null,
+            palletSlots: palletSlots !== undefined && palletSlots !== '' ? Number(palletSlots) : null,
+        },
     });
     res.status(201).json(unit);
 }
@@ -53,13 +58,18 @@ async function updateUnit(req, res) {
         include: { property: true },
     });
     if (!unit || unit.property.userId !== req.userId) {
-        res.status(404).json({ error: '找不到房間' });
+        res.status(404).json({ error: '找不到倉庫' });
         return;
     }
-    const { unitNumber, floor, type, monthlyRent, status, description } = req.body;
+    const { unitNumber, floor, type, monthlyRent, status, description, areaPing, tempControl, palletSlots } = req.body;
     const updated = await app_1.prisma.unit.update({
         where: { id },
-        data: { unitNumber, floor: floor ? Number(floor) : undefined, type, monthlyRent, status, description },
+        data: {
+            unitNumber, floor: floor ? Number(floor) : undefined, type, monthlyRent, status, description,
+            areaPing: areaPing !== undefined && areaPing !== '' ? Number(areaPing) : undefined,
+            tempControl: tempControl !== undefined ? (tempControl || null) : undefined,
+            palletSlots: palletSlots !== undefined && palletSlots !== '' ? Number(palletSlots) : undefined,
+        },
     });
     res.json(updated);
 }

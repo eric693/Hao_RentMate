@@ -55,8 +55,10 @@ model Unit {
   type        String?
   monthlyRent Decimal    @db.Decimal(10, 2)
   status      UnitStatus @default(VACANT)
-  areaPing    Decimal?   @db.Decimal(6, 2) // 坪數（水電分攤、租金行情用）
+  areaPing    Decimal?   @db.Decimal(6, 2) // 坪數/面積（水電分攤、租金行情用）
   occupants   Int?       // 居住人數（水電分攤人頭法用）
+  tempControl String?    // 溫控類型：常溫 / 冷藏 / 冷凍
+  palletSlots Int?       // 棧板位數
   description String?
   createdAt   DateTime   @default(now())
 

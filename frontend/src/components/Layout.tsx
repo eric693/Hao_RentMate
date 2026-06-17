@@ -98,7 +98,7 @@ export default function Layout() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
           <SidebarLink to="/" label="總覽" icon={LayoutDashboard} exact />
-          {hasPerm('properties') && <SidebarLink to="/properties" label="房務" icon={Building2} />}
+          {hasPerm('properties') && <SidebarLink to="/properties" label="倉儲管理" icon={Building2} />}
           {hasPerm('tenants') && <SidebarLink to="/tenants" label="租客" icon={Users} />}
 
           {/* 帳務 submenu */}
@@ -171,7 +171,7 @@ export default function Layout() {
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-50 shadow-lg">
           {[
             { to: '/', label: '總覽', icon: LayoutDashboard, exact: true, perm: null },
-            { to: '/properties', label: '房務', icon: Building2, exact: false, perm: 'properties' },
+            { to: '/properties', label: '倉儲', icon: Building2, exact: false, perm: 'properties' },
             { to: '/finance', label: '帳務', icon: CreditCard, exact: false, perm: 'finance' },
             { to: '/roi', label: '投報', icon: TrendingUp, exact: false, perm: 'roi' },
             { to: '/settings', label: '設定', icon: Settings, exact: false, perm: 'settings' },

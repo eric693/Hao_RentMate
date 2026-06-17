@@ -3,6 +3,7 @@ import { X, Plus, Building2, Home, TrendingUp, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { Property, Unit, Tenant, Contract } from '../types';
+import ExportButtons from '../components/ExportButtons';
 
 export default function Properties() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -31,7 +32,7 @@ export default function Properties() {
   }
 
   async function deleteProperty(id: string) {
-    if (!confirm('確定刪除此物業？所有房間資料也將一併刪除。')) return;
+    if (!confirm('確定刪除此據點？所有倉庫資料也將一併刪除。')) return;
     await api.delete(`/properties/${id}`);
     setSelectedProperty(null);
     fetchAll();
@@ -47,12 +48,15 @@ export default function Properties() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">房務管理</h1>
-          <p className="text-xs text-gray-400 mt-0.5">管理物業與房間資訊</p>
+          <h1 className="text-xl font-bold text-gray-800">倉儲管理</h1>
+          <p className="text-xs text-gray-400 mt-0.5">管理據點與倉庫資訊</p>
         </div>
-        <button onClick={() => setShowAddProperty(true)} className="btn-primary text-sm flex items-center gap-1.5">
-          <Plus className="w-4 h-4" />新增物業
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButtons type="warehouses" />
+          <button onClick={() => setShowAddProperty(true)} className="btn-primary text-sm flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />新增據點
+          </button>
+        </div>
       </div>
 
       {/* Overall stats */}
@@ -61,14 +65,14 @@ export default function Properties() {
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Building2 className="w-4 h-4 text-brand" />
-              <span className="text-xs text-gray-400">物業 / 房間</span>
+              <span className="text-xs text-gray-400">據點 / 倉庫</span>
             </div>
             <div className="text-lg font-bold text-gray-800">{properties.length} 棟 / {totalUnits} 間</div>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Home className="w-4 h-4 text-green-500" />
-              <span className="text-xs text-gray-400">入住率</span>
+              <span className="text-xs text-gray-400">出租率</span>
             </div>
             <div className="text-lg font-bold text-gray-800">
               {totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0}%
@@ -78,7 +82,7 @@ export default function Properties() {
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
-              <span className="text-xs text-gray-400">月收租總額</span>
+              <span className="text-xs text-gray-400">月租金總額</span>
             </div>
             <div className="text-lg font-bold text-brand">NT${totalRent.toLocaleString()}</div>
           </div>
@@ -100,9 +104,9 @@ export default function Properties() {
       ) : properties.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
           <Building2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <div className="text-gray-500 font-medium mb-1">尚未建立任何物業</div>
-          <div className="text-xs text-gray-400 mb-4">新增第一個物業以開始管理您的房源</div>
-          <button onClick={() => setShowAddProperty(true)} className="btn-primary text-sm">新增物業</button>
+          <div className="text-gray-500 font-medium mb-1">尚未建立任何據點</div>
+          <div className="text-xs text-gray-400 mb-4">新增第一個據點以開始管理您的倉庫</div>
+          <button onClick={() => setShowAddProperty(true)} className="btn-primary text-sm">新增據點</button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -159,7 +163,7 @@ function PropertyCard({
   const totalRent = units.filter((u) => u.status === 'OCCUPIED').reduce((s, u) => s + Number(u.monthlyRent), 0);
 
   async function deleteUnit(unitId: string) {
-    if (!confirm('確定刪除此房間？')) return;
+    if (!confirm('確定刪除此倉庫？')) return;
     await api.delete(`/units/${unitId}`);
     onRefresh();
   }
@@ -190,7 +194,7 @@ function PropertyCard({
               onClick={(e) => { e.stopPropagation(); onAddUnit(); }}
               className="text-xs px-2 py-1 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
             >
-              + 房間
+              + 倉庫
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -208,7 +212,7 @@ function PropertyCard({
         <div className="border-t border-gray-100">
           {units.length === 0 ? (
             <div className="px-5 py-6 text-center text-gray-400 text-sm">
-              尚無房間，<button onClick={onAddUnit} className="text-brand hover:underline">新增第一間房間</button>
+              尚無倉庫，<button onClick={onAddUnit} className="text-brand hover:underline">新增第一個倉庫</button>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
@@ -219,12 +223,14 @@ function PropertyCard({
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${unit.status === 'OCCUPIED' ? 'bg-green-400' : 'bg-gray-300'}`} />
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-gray-700 text-sm">{unit.unitNumber}</span>
                           {unit.floor && <span className="text-xs text-gray-400">{unit.floor}F</span>}
-                          {unit.type && <span className="text-xs text-gray-400">{unit.type}</span>}
+                          {unit.tempControl && <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{unit.tempControl}</span>}
+                          {unit.areaPing != null && <span className="text-xs text-gray-400">{Number(unit.areaPing)} 坪</span>}
+                          {unit.palletSlots != null && <span className="text-xs text-gray-400">{unit.palletSlots} 棧板位</span>}
                           <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${unit.status === 'OCCUPIED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {unit.status === 'OCCUPIED' ? '已出租' : '空房'}
+                            {unit.status === 'OCCUPIED' ? '已出租' : '空置'}
                           </span>
                         </div>
                         {activeContract?.tenant && (
@@ -283,9 +289,9 @@ function AddPropertyModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     onSaved(); onClose();
   }
   return (
-    <Modal title="新增物業" onClose={onClose}>
+    <Modal title="新增據點" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div><label className="block text-sm font-medium mb-1">物業名稱 <span className="text-red-400">*</span></label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
+        <div><label className="block text-sm font-medium mb-1">據點名稱 <span className="text-red-400">*</span></label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
         <div><label className="block text-sm font-medium mb-1">地址 <span className="text-red-400">*</span></label><input className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} required /></div>
         <div><label className="block text-sm font-medium mb-1">說明</label><textarea className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} /></div>
         <div className="flex gap-2"><button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button><button type="submit" className="btn-primary flex-1">新增</button></div>
@@ -294,21 +300,44 @@ function AddPropertyModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
   );
 }
 
+// 倉庫表單共用欄位
+function WarehouseFields({ form, setForm }: { form: any; setForm: (f: any) => void }) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <div><label className="block text-sm font-medium mb-1">樓層</label><input type="number" className="input" value={form.floor} onChange={e => setForm({ ...form, floor: e.target.value })} /></div>
+        <div><label className="block text-sm font-medium mb-1">面積（坪）</label><input type="number" step="0.01" className="input" value={form.areaPing} onChange={e => setForm({ ...form, areaPing: e.target.value })} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-sm font-medium mb-1">溫控類型</label>
+          <select className="input" value={form.tempControl} onChange={e => setForm({ ...form, tempControl: e.target.value })}>
+            <option value="">未指定</option>
+            <option value="常溫">常溫</option>
+            <option value="冷藏">冷藏</option>
+            <option value="冷凍">冷凍</option>
+            <option value="恆溫恆濕">恆溫恆濕</option>
+          </select>
+        </div>
+        <div><label className="block text-sm font-medium mb-1">棧板位數</label><input type="number" className="input" value={form.palletSlots} onChange={e => setForm({ ...form, palletSlots: e.target.value })} /></div>
+      </div>
+      <div><label className="block text-sm font-medium mb-1">用途／類型</label><input className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} placeholder="一般倉、危險品、保稅倉…" /></div>
+    </>
+  );
+}
+
 function AddUnitModal({ propertyId, onClose, onSaved }: { propertyId: string; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ unitNumber: '', floor: '', type: '', monthlyRent: '' });
+  const [form, setForm] = useState({ unitNumber: '', floor: '', type: '', monthlyRent: '', areaPing: '', tempControl: '', palletSlots: '' });
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     await api.post(`/properties/${propertyId}/units`, form);
     onSaved(); onClose();
   }
   return (
-    <Modal title="新增房間" onClose={onClose}>
+    <Modal title="新增倉庫" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div><label className="block text-sm font-medium mb-1">房號 <span className="text-red-400">*</span></label><input className="input" value={form.unitNumber} onChange={e => setForm({ ...form, unitNumber: e.target.value })} required /></div>
-        <div className="grid grid-cols-2 gap-2">
-          <div><label className="block text-sm font-medium mb-1">樓層</label><input type="number" className="input" value={form.floor} onChange={e => setForm({ ...form, floor: e.target.value })} /></div>
-          <div><label className="block text-sm font-medium mb-1">類型</label><input className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} placeholder="套房、兩房..." /></div>
-        </div>
+        <div><label className="block text-sm font-medium mb-1">倉庫編號 <span className="text-red-400">*</span></label><input className="input" value={form.unitNumber} onChange={e => setForm({ ...form, unitNumber: e.target.value })} required /></div>
+        <WarehouseFields form={form} setForm={setForm} />
         <div><label className="block text-sm font-medium mb-1">月租金 <span className="text-red-400">*</span></label><input type="number" className="input" value={form.monthlyRent} onChange={e => setForm({ ...form, monthlyRent: e.target.value })} required /></div>
         <div className="flex gap-2"><button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button><button type="submit" className="btn-primary flex-1">新增</button></div>
       </form>
@@ -322,6 +351,9 @@ function EditUnitModal({ unit, onClose, onSaved }: { unit: Unit; onClose: () => 
     floor: unit.floor ? String(unit.floor) : '',
     type: unit.type ?? '',
     monthlyRent: String(unit.monthlyRent),
+    areaPing: unit.areaPing != null ? String(unit.areaPing) : '',
+    tempControl: unit.tempControl ?? '',
+    palletSlots: unit.palletSlots != null ? String(unit.palletSlots) : '',
   });
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -329,13 +361,10 @@ function EditUnitModal({ unit, onClose, onSaved }: { unit: Unit; onClose: () => 
     onSaved(); onClose();
   }
   return (
-    <Modal title="編輯房間" onClose={onClose}>
+    <Modal title="編輯倉庫" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div><label className="block text-sm font-medium mb-1">房號</label><input className="input" value={form.unitNumber} onChange={e => setForm({ ...form, unitNumber: e.target.value })} required /></div>
-        <div className="grid grid-cols-2 gap-2">
-          <div><label className="block text-sm font-medium mb-1">樓層</label><input type="number" className="input" value={form.floor} onChange={e => setForm({ ...form, floor: e.target.value })} /></div>
-          <div><label className="block text-sm font-medium mb-1">類型</label><input className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} /></div>
-        </div>
+        <div><label className="block text-sm font-medium mb-1">倉庫編號</label><input className="input" value={form.unitNumber} onChange={e => setForm({ ...form, unitNumber: e.target.value })} required /></div>
+        <WarehouseFields form={form} setForm={setForm} />
         <div><label className="block text-sm font-medium mb-1">月租金</label><input type="number" className="input" value={form.monthlyRent} onChange={e => setForm({ ...form, monthlyRent: e.target.value })} required /></div>
         <div className="flex gap-2"><button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button><button type="submit" className="btn-primary flex-1">儲存</button></div>
       </form>

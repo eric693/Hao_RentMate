@@ -16,6 +16,38 @@ const PRIO = { HIGH: '高', MEDIUM: '中', LOW: '低' };
 const METHOD = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量' };
 const PAY_ST = { MATCHED: '已對帳', UNMATCHED: '未對帳', PENDING: '待處理', PARTIAL: '部分' };
 const DATASETS = {
+    warehouses: {
+        module: 'properties', title: '倉庫清單',
+        columns: [
+            { key: 'property', label: '據點', width: 1.3 }, { key: 'unitNumber', label: '倉庫編號' },
+            { key: 'floor', label: '樓層' }, { key: 'area', label: '面積(坪)' }, { key: 'temp', label: '溫控' },
+            { key: 'pallet', label: '棧板位' }, { key: 'rent', label: '月租金' }, { key: 'status', label: '狀態' }, { key: 'tenant', label: '承租租客' },
+        ],
+        fetch: async (userId) => {
+            const props = await app_1.prisma.property.findMany({
+                where: { userId },
+                include: {
+                    units: {
+                        include: { contracts: { where: { status: 'ACTIVE' }, include: { tenant: true } } },
+                        orderBy: [{ floor: 'asc' }, { unitNumber: 'asc' }],
+                    },
+                },
+                orderBy: { name: 'asc' },
+            });
+            const rows = [];
+            for (const p of props)
+                for (const u of p.units) {
+                    rows.push({
+                        property: p.name, unitNumber: u.unitNumber, floor: u.floor ?? '',
+                        area: u.areaPing != null ? Number(u.areaPing) : '', temp: u.tempControl ?? '',
+                        pallet: u.palletSlots ?? '', rent: money(u.monthlyRent),
+                        status: u.status === 'OCCUPIED' ? '已出租' : '空置',
+                        tenant: u.contracts[0]?.tenant.name ?? '',
+                    });
+                }
+            return rows;
+        },
+    },
     tenants: {
         module: 'tenants', title: '租客名單',
         columns: [
