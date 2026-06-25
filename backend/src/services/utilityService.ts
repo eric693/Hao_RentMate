@@ -1,13 +1,18 @@
 import { prisma } from '../app';
 
-// 水電費分攤：把一張總單拆給該據點目前有「在住合約」的倉庫。
-// 方法：EVEN 平均 / AREA 坪數 / HEADCOUNT 人頭 / USAGE 自訂用量。
+// 水電費計算：
+//  分攤模式（EVEN/AREA/HEADCOUNT/USAGE）：把一張總單拆給該據點目前有「在住合約」的倉庫。
+//  獨立電錶模式（METER）：每戶有獨立電錶，逐戶抄表計費 = (本期-上期) × 單價；
+//                        只計入有提供本期讀數的倉庫，沒收電費的戶不會出現，總額為各戶加總。
 
-export type SplitMethod = 'EVEN' | 'AREA' | 'HEADCOUNT' | 'USAGE';
+export type SplitMethod = 'EVEN' | 'AREA' | 'HEADCOUNT' | 'USAGE' | 'METER';
 
 export interface AllocationInput {
   unitId: string;
-  usage?: number; // method=USAGE 時的用量值（度數/噸數）
+  usage?: number;       // method=USAGE 時的用量值（度數/噸數）
+  prevReading?: number; // method=METER：上期讀數（未填則沿用倉庫的 electricLastReading）
+  currReading?: number; // method=METER：本期讀數
+  unitPrice?: number;   // method=METER：單價（元/度），未填則沿用倉庫的 electricUnitPrice
 }
 
 export interface ComputedAllocation {
@@ -15,6 +20,10 @@ export interface ComputedAllocation {
   unitNumber: string;
   amount: number;
   basis: number | null;
+  // METER 模式才有：抄表軌跡
+  prevReading?: number;
+  currReading?: number;
+  unitPrice?: number;
 }
 
 // 取得據點內目前有 ACTIVE 合約的倉庫（分攤對象）
@@ -32,6 +41,34 @@ export async function computeAllocations(
 ): Promise<ComputedAllocation[]> {
   const units = await activeUnits(propertyId);
   if (units.length === 0) return [];
+
+  // 獨立電錶（抄表）模式：逐戶 (本期-上期)×單價，只計入有抄表的倉庫
+  if (method === 'METER') {
+    const inputMap = new Map(inputs.map((i) => [i.unitId, i]));
+    const result: ComputedAllocation[] = [];
+    for (const u of units) {
+      // 沒有獨立電錶的倉庫不收電費（即使前端誤送讀數也擋掉）
+      if (!u.hasElectricMeter) continue;
+      const input = inputMap.get(u.id);
+      // 沒填本期讀數 → 此戶本期不收電費，不列入
+      if (!input || input.currReading === undefined || input.currReading === null) continue;
+      const prev = input.prevReading ?? (u.electricLastReading != null ? Number(u.electricLastReading) : 0);
+      const curr = Number(input.currReading);
+      const price = input.unitPrice ?? (u.electricUnitPrice != null ? Number(u.electricUnitPrice) : 0);
+      const used = Math.max(0, curr - prev);
+      const amount = Math.round(used * price * 100) / 100;
+      result.push({
+        unitId: u.id,
+        unitNumber: u.unitNumber,
+        amount,
+        basis: used,
+        prevReading: prev,
+        currReading: curr,
+        unitPrice: price,
+      });
+    }
+    return result;
+  }
 
   const usageMap = new Map(inputs.map((i) => [i.unitId, i.usage ?? 0]));
 

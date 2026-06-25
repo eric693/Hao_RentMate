@@ -36,7 +36,7 @@ async function createUnit(req, res) {
         res.status(404).json({ error: '找不到據點' });
         return;
     }
-    const { unitNumber, floor, type, monthlyRent, description, areaPing, tempControl, palletSlots } = req.body;
+    const { unitNumber, floor, type, monthlyRent, description, areaPing, tempControl, palletSlots, hasElectricMeter, electricUnitPrice, electricLastReading } = req.body;
     if (!unitNumber || !monthlyRent) {
         res.status(400).json({ error: '請填寫倉庫編號與月租金' });
         return;
@@ -47,6 +47,9 @@ async function createUnit(req, res) {
             areaPing: areaPing !== undefined && areaPing !== '' ? Number(areaPing) : null,
             tempControl: tempControl || null,
             palletSlots: palletSlots !== undefined && palletSlots !== '' ? Number(palletSlots) : null,
+            hasElectricMeter: Boolean(hasElectricMeter),
+            electricUnitPrice: electricUnitPrice !== undefined && electricUnitPrice !== '' ? Number(electricUnitPrice) : null,
+            electricLastReading: electricLastReading !== undefined && electricLastReading !== '' ? Number(electricLastReading) : null,
         },
     });
     res.status(201).json(unit);
@@ -61,7 +64,7 @@ async function updateUnit(req, res) {
         res.status(404).json({ error: '找不到倉庫' });
         return;
     }
-    const { unitNumber, floor, type, monthlyRent, status, description, areaPing, tempControl, palletSlots } = req.body;
+    const { unitNumber, floor, type, monthlyRent, status, description, areaPing, tempControl, palletSlots, hasElectricMeter, electricUnitPrice, electricLastReading } = req.body;
     const updated = await app_1.prisma.unit.update({
         where: { id },
         data: {
@@ -69,6 +72,9 @@ async function updateUnit(req, res) {
             areaPing: areaPing !== undefined && areaPing !== '' ? Number(areaPing) : undefined,
             tempControl: tempControl !== undefined ? (tempControl || null) : undefined,
             palletSlots: palletSlots !== undefined && palletSlots !== '' ? Number(palletSlots) : undefined,
+            hasElectricMeter: hasElectricMeter !== undefined ? Boolean(hasElectricMeter) : undefined,
+            electricUnitPrice: electricUnitPrice !== undefined ? (electricUnitPrice !== '' ? Number(electricUnitPrice) : null) : undefined,
+            electricLastReading: electricLastReading !== undefined ? (electricLastReading !== '' ? Number(electricLastReading) : null) : undefined,
         },
     });
     res.json(updated);

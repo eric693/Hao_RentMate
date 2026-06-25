@@ -60,6 +60,10 @@ model Unit {
   tempControl String?    // 溫控類型：常溫 / 冷藏 / 冷凍
   palletSlots Int?       // 棧板位數
   description String?
+  // 獨立電錶（抄表計費）：非每戶都收電費
+  hasElectricMeter    Boolean  @default(false) // 此倉庫是否有獨立電錶／收電費
+  electricUnitPrice   Decimal? @db.Decimal(8, 2)  // 電費單價（元/度）
+  electricLastReading Decimal? @db.Decimal(10, 2) // 上次抄表度數（下期自動帶為上期）
   createdAt   DateTime   @default(now())
 
   property            Property             @relation(fields: [propertyId], references: [id])
@@ -403,8 +407,12 @@ model UtilityAllocation {
   utilityBillId String
   unitId        String
   amount        Decimal  @db.Decimal(10, 2)
-  basis         Decimal? @db.Decimal(10, 2) // 分攤依據值（用量/坪數/人頭）
+  basis         Decimal? @db.Decimal(10, 2) // 分攤依據值（用量/坪數/人頭）；METER 時為本期用電度數
   billed        Boolean  @default(false)    // 是否已開帳給租客
+  // 獨立電錶（METER）抄表軌跡
+  prevReading   Decimal? @db.Decimal(10, 2) // 上期讀數
+  currReading   Decimal? @db.Decimal(10, 2) // 本期讀數
+  unitPrice     Decimal? @db.Decimal(8, 2)  // 單價（元/度）
 
   utilityBill UtilityBill @relation(fields: [utilityBillId], references: [id], onDelete: Cascade)
   unit        Unit        @relation(fields: [unitId], references: [id])

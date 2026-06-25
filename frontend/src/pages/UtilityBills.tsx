@@ -4,7 +4,7 @@ import api from '../api/client';
 import { Expense, Property } from '../types';
 import ExportButtons from '../components/ExportButtons';
 
-interface Allocation { unitId: string; unitNumber: string; amount: number; basis: number | null }
+interface Allocation { unitId: string; unitNumber: string; amount: number; basis: number | null; prevReading?: number; currReading?: number; unitPrice?: number }
 interface UtilityBill {
   id: string;
   propertyId: string;
@@ -14,9 +14,9 @@ interface UtilityBill {
   totalAmount: number;
   method: string;
   property?: { name: string };
-  allocations: Array<{ id: string; amount: number; basis: number | null; billed: boolean; unit: { unitNumber: string } }>;
+  allocations: Array<{ id: string; unitId?: string; amount: number; basis: number | null; billed: boolean; prevReading?: number | null; currReading?: number | null; unitPrice?: number | null; unit: { unitNumber: string } }>;
 }
-const METHOD_LABEL: Record<string, string> = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量' };
+const METHOD_LABEL: Record<string, string> = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量', METER: '獨立電錶' };
 
 const UTILITY_LABELS: Record<string, string> = { WATER: '水費', ELECTRICITY: '電費', GAS: '瓦斯費' };
 const UTILITY_COLORS: Record<string, string> = { WATER: '#60a5fa', ELECTRICITY: '#f59e0b', GAS: '#f97316' };
@@ -168,7 +168,7 @@ export default function UtilityBills() {
       {bills.length > 0 && (
         <div className="mt-6">
           <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-            <Split className="w-4 h-4 text-brand" />分攤帳單
+            <Split className="w-4 h-4 text-brand" />水電開帳明細
           </h2>
           <div className="space-y-3">
             {bills.map((b) => (
@@ -178,7 +178,7 @@ export default function UtilityBills() {
                     <span style={{ color: UTILITY_COLORS[b.category] }}>{UTILITY_ICONS[b.category]}</span>
                     <span className="font-medium text-gray-700">{UTILITY_LABELS[b.category]}</span>
                     <span className="text-xs text-gray-400">{b.property?.name}</span>
-                    <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{METHOD_LABEL[b.method]}分攤</span>
+                    <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{b.method === 'METER' ? '獨立電錶' : `${METHOD_LABEL[b.method]}分攤`}</span>
                   </div>
                   <span className="font-bold text-gray-800">NT${Number(b.totalAmount).toLocaleString()}</span>
                 </div>
@@ -188,7 +188,7 @@ export default function UtilityBills() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
                   {b.allocations.map((a) => (
                     <div key={a.id} className="bg-warm rounded-lg px-2.5 py-1.5 text-xs flex items-center justify-between">
-                      <span className="text-gray-600">{a.unit.unitNumber}</span>
+                      <span className="text-gray-600">{a.unit.unitNumber}{b.method === 'METER' && a.basis != null ? `（${Number(a.basis)} 度）` : ''}</span>
                       <span className="font-medium text-gray-800">NT${Number(a.amount).toLocaleString()}</span>
                     </div>
                   ))}
@@ -254,34 +254,79 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
     periodStart: editing ? new Date(editing.periodStart).toISOString().split('T')[0] : firstDay,
     periodEnd: editing ? new Date(editing.periodEnd).toISOString().split('T')[0] : lastDay,
     totalAmount: editing ? String(editing.totalAmount) : '',
-    method: editing?.method ?? 'EVEN',
+    method: editing?.method ?? 'METER',
   });
   const [usage, setUsage] = useState<Record<string, string>>({});
+  // 獨立電錶（抄表）：每戶的 上期/本期/單價；編輯既有電錶帳單時回填已抄讀數
+  const [meter, setMeter] = useState<Record<string, { prev: string; curr: string; price: string }>>(() => {
+    if (editing?.method !== 'METER') return {};
+    const m: Record<string, { prev: string; curr: string; price: string }> = {};
+    for (const a of editing.allocations) {
+      if (!a.unitId) continue;
+      m[a.unitId] = {
+        prev: a.prevReading != null ? String(a.prevReading) : '',
+        curr: a.currReading != null ? String(a.currReading) : '',
+        price: a.unitPrice != null ? String(a.unitPrice) : '',
+      };
+    }
+    return m;
+  });
   const [preview, setPreview] = useState<Allocation[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   const property = properties.find((p) => p.id === form.propertyId);
   const occupiedUnits = (property?.units ?? []).filter((u) => u.status === 'OCCUPIED');
+  const isMeter = form.method === 'METER';
+  // 抄表模式只列出有獨立電錶的在住倉庫
+  const meterUnits = occupiedUnits.filter((u) => u.hasElectricMeter);
+
+  // 取某戶抄表欄位值（未填則帶倉庫預設：上期=目前度數、單價=預設單價）
+  function meterVal(u: typeof occupiedUnits[number], key: 'prev' | 'curr' | 'price') {
+    const m = meter[u.id];
+    if (m && m[key] !== undefined && m[key] !== '') return m[key];
+    if (key === 'prev') return u.electricLastReading != null ? String(u.electricLastReading) : '';
+    if (key === 'price') return u.electricUnitPrice != null ? String(u.electricUnitPrice) : '';
+    return '';
+  }
+  function setMeterVal(unitId: string, key: 'prev' | 'curr' | 'price', value: string) {
+    setMeter((m) => {
+      const existing = m[unitId] ?? { prev: '', curr: '', price: '' };
+      return { ...m, [unitId]: { ...existing, [key]: value } };
+    });
+    setPreview(null);
+  }
 
   function inputsPayload() {
+    if (isMeter) {
+      return meterUnits
+        .filter((u) => meterVal(u, 'curr') !== '') // 只送有抄本期讀數的戶
+        .map((u) => ({
+          unitId: u.id,
+          prevReading: Number(meterVal(u, 'prev') || 0),
+          currReading: Number(meterVal(u, 'curr')),
+          unitPrice: Number(meterVal(u, 'price') || 0),
+        }));
+    }
     return occupiedUnits.map((u) => ({ unitId: u.id, usage: Number(usage[u.id] ?? 0) }));
   }
 
   async function doPreview() {
-    if (!form.totalAmount) return;
+    if (!isMeter && !form.totalAmount) return;
     const r = await api.post('/utility-bills/preview', {
       propertyId: form.propertyId,
-      totalAmount: Number(form.totalAmount),
+      totalAmount: isMeter ? 0 : Number(form.totalAmount),
       method: form.method,
       inputs: inputsPayload(),
     });
     setPreview(r.data.allocations);
   }
 
+  const previewTotal = (preview ?? []).reduce((s, a) => s + a.amount, 0);
+
   async function submit() {
     setSaving(true);
     try {
-      const payload = { ...form, totalAmount: Number(form.totalAmount), inputs: inputsPayload() };
+      const payload = { ...form, totalAmount: isMeter ? 0 : Number(form.totalAmount), inputs: inputsPayload() };
       if (isEdit) {
         await api.put(`/utility-bills/${editing!.id}`, payload);
       } else {
@@ -299,7 +344,7 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
     <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg flex items-center gap-2"><Split className="w-5 h-5 text-brand" />{isEdit ? '編輯分攤帳單' : '水電費分攤'}</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2"><Split className="w-5 h-5 text-brand" />{isEdit ? '編輯水電帳單' : '水電費帳單'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-3">
@@ -332,11 +377,16 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-sm font-medium mb-1">總金額</label>
-              <input type="number" className="input" value={form.totalAmount} onChange={(e) => { setForm({ ...form, totalAmount: e.target.value }); setPreview(null); }} />
+              {isMeter ? (
+                <input type="text" className="input bg-gray-50 text-gray-500" value={preview ? `NT$${previewTotal.toLocaleString()}` : '抄表後自動加總'} readOnly />
+              ) : (
+                <input type="number" className="input" value={form.totalAmount} onChange={(e) => { setForm({ ...form, totalAmount: e.target.value }); setPreview(null); }} />
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">分攤方式</label>
+              <label className="block text-sm font-medium mb-1">計費方式</label>
               <select className="input" value={form.method} onChange={(e) => { setForm({ ...form, method: e.target.value }); setPreview(null); }}>
+                <option value="METER">獨立電錶（抄表）</option>
                 <option value="EVEN">平均分攤</option>
                 <option value="AREA">依坪數</option>
                 <option value="HEADCOUNT">依人頭</option>
@@ -344,6 +394,32 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
               </select>
             </div>
           </div>
+
+          {isMeter && (
+            <div>
+              <label className="block text-sm font-medium mb-1">各倉抄表（僅列有獨立電錶的在住倉庫）</label>
+              {meterUnits.length === 0 ? (
+                <div className="text-xs text-gray-400 bg-warm rounded-lg p-2">此據點目前沒有「有獨立電錶」且在住的倉庫。請先到「倉儲管理」勾選倉庫的獨立電錶。</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-1.5 text-[11px] text-gray-400 px-1 mb-1">
+                    <span>倉庫</span><span>上期</span><span>本期</span><span>單價</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {meterUnits.map((u) => (
+                      <div key={u.id} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-1.5 items-center">
+                        <span className="text-sm text-gray-600 truncate">{u.unitNumber}</span>
+                        <input type="number" className="input text-sm py-1.5" placeholder="上期" value={meterVal(u, 'prev')} onChange={(e) => setMeterVal(u.id, 'prev', e.target.value)} />
+                        <input type="number" className="input text-sm py-1.5" placeholder="本期" value={meterVal(u, 'curr')} onChange={(e) => setMeterVal(u.id, 'curr', e.target.value)} />
+                        <input type="number" className="input text-sm py-1.5" placeholder="元/度" value={meterVal(u, 'price')} onChange={(e) => setMeterVal(u.id, 'price', e.target.value)} />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">上期、單價會自動帶入倉庫設定值；沒填本期讀數的倉庫本期不收電費。</p>
+                </>
+              )}
+            </div>
+          )}
 
           {form.method === 'USAGE' && (
             <div>
@@ -359,21 +435,27 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
             </div>
           )}
 
-          <button onClick={doPreview} className="btn-secondary text-sm w-full">試算分攤</button>
+          <button onClick={doPreview} className="btn-secondary text-sm w-full">{isMeter ? '試算電費' : '試算分攤'}</button>
 
           {preview && (
             <div className="bg-warm rounded-xl p-3">
-              <div className="text-xs font-medium text-gray-600 mb-2">分攤結果（{occupiedUnits.length} 間在住）</div>
+              <div className="text-xs font-medium text-gray-600 mb-2">{isMeter ? `電費試算（${preview.length} 戶收費）` : `分攤結果（${occupiedUnits.length} 間在住）`}</div>
               {preview.length === 0 ? (
-                <div className="text-xs text-gray-400">此據點目前無承租中倉庫。</div>
+                <div className="text-xs text-gray-400">{isMeter ? '尚無填寫本期讀數的倉庫。' : '此據點目前無承租中倉庫。'}</div>
               ) : (
                 <div className="space-y-1">
                   {preview.map((a) => (
                     <div key={a.unitId} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">{a.unitNumber}{a.basis != null ? `（${a.basis}）` : ''}</span>
+                      <span className="text-gray-600">{a.unitNumber}{isMeter ? `（${a.basis} 度）` : a.basis != null ? `（${a.basis}）` : ''}</span>
                       <span className="font-medium text-gray-800">NT${a.amount.toLocaleString()}</span>
                     </div>
                   ))}
+                  {isMeter && (
+                    <div className="flex items-center justify-between text-sm pt-1.5 mt-1 border-t border-gray-200">
+                      <span className="text-gray-500 font-medium">合計</span>
+                      <span className="font-bold text-gray-800">NT${previewTotal.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -381,7 +463,7 @@ function SplitModal({ properties, editing, onClose, onSaved }: {
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">取消</button>
-            <button type="button" onClick={submit} disabled={saving || !form.totalAmount} className="btn-primary flex-1 disabled:opacity-50">{saving ? '儲存中...' : isEdit ? '儲存變更' : '建立分攤帳單'}</button>
+            <button type="button" onClick={submit} disabled={saving || (isMeter ? meterUnits.length === 0 : !form.totalAmount)} className="btn-primary flex-1 disabled:opacity-50">{saving ? '儲存中...' : isEdit ? '儲存變更' : isMeter ? '建立電費帳單' : '建立分攤帳單'}</button>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ const RENT_ST: Record<string, string> = { PAID: '已繳清', PENDING: '待繳', 
 const CON_ST: Record<string, string> = { ACTIVE: '進行中', EXPIRED: '已到期', TERMINATED: '已終止' };
 const MNT_ST: Record<string, string> = { PENDING: '待處理', IN_PROGRESS: '處理中', COMPLETED: '已完成', CANCELLED: '已取消' };
 const PRIO: Record<string, string> = { HIGH: '高', MEDIUM: '中', LOW: '低' };
-const METHOD: Record<string, string> = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量' };
+const METHOD: Record<string, string> = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量', METER: '獨立電錶' };
 const PAY_ST: Record<string, string> = { MATCHED: '已對帳', UNMATCHED: '未對帳', PENDING: '待處理', PARTIAL: '部分' };
 
 interface Dataset {

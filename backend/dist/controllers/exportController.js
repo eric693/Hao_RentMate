@@ -13,7 +13,7 @@ const RENT_ST = { PAID: '已繳清', PENDING: '待繳', PARTIAL: '部分繳款',
 const CON_ST = { ACTIVE: '進行中', EXPIRED: '已到期', TERMINATED: '已終止' };
 const MNT_ST = { PENDING: '待處理', IN_PROGRESS: '處理中', COMPLETED: '已完成', CANCELLED: '已取消' };
 const PRIO = { HIGH: '高', MEDIUM: '中', LOW: '低' };
-const METHOD = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量' };
+const METHOD = { EVEN: '平均', AREA: '坪數', HEADCOUNT: '人頭', USAGE: '用量', METER: '獨立電錶' };
 const PAY_ST = { MATCHED: '已對帳', UNMATCHED: '未對帳', PENDING: '待處理', PARTIAL: '部分' };
 const DATASETS = {
     warehouses: {

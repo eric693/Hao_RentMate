@@ -229,6 +229,7 @@ function PropertyCard({
                           {unit.tempControl && <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{unit.tempControl}</span>}
                           {unit.areaPing != null && <span className="text-xs text-gray-400">{Number(unit.areaPing)} 坪</span>}
                           {unit.palletSlots != null && <span className="text-xs text-gray-400">{unit.palletSlots} 棧板位</span>}
+                          {unit.hasElectricMeter && <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">獨立電錶</span>}
                           <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${unit.status === 'OCCUPIED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                             {unit.status === 'OCCUPIED' ? '已出租' : '空置'}
                           </span>
@@ -322,12 +323,25 @@ function WarehouseFields({ form, setForm }: { form: any; setForm: (f: any) => vo
         <div><label className="block text-sm font-medium mb-1">棧板位數</label><input type="number" className="input" value={form.palletSlots} onChange={e => setForm({ ...form, palletSlots: e.target.value })} /></div>
       </div>
       <div><label className="block text-sm font-medium mb-1">用途／類型</label><input className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} placeholder="一般倉、危險品、保稅倉…" /></div>
+      <div className="rounded-xl bg-warm/60 p-3 space-y-2">
+        <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+          <input type="checkbox" className="w-4 h-4" checked={!!form.hasElectricMeter} onChange={e => setForm({ ...form, hasElectricMeter: e.target.checked })} />
+          獨立電錶（此倉庫收電費）
+        </label>
+        {form.hasElectricMeter && (
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className="block text-xs text-gray-500 mb-1">電費單價（元/度）</label><input type="number" step="0.01" className="input" value={form.electricUnitPrice} onChange={e => setForm({ ...form, electricUnitPrice: e.target.value })} placeholder="例：5" /></div>
+            <div><label className="block text-xs text-gray-500 mb-1">目前電錶度數</label><input type="number" step="0.01" className="input" value={form.electricLastReading} onChange={e => setForm({ ...form, electricLastReading: e.target.value })} placeholder="抄表起始值" /></div>
+          </div>
+        )}
+        <p className="text-xs text-gray-400">勾選後，水電帳單可用「獨立電錶（抄表）」模式逐戶計費；未勾選的倉庫不會列入電費抄表。</p>
+      </div>
     </>
   );
 }
 
 function AddUnitModal({ propertyId, onClose, onSaved }: { propertyId: string; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ unitNumber: '', floor: '', type: '', monthlyRent: '', areaPing: '', tempControl: '', palletSlots: '' });
+  const [form, setForm] = useState({ unitNumber: '', floor: '', type: '', monthlyRent: '', areaPing: '', tempControl: '', palletSlots: '', hasElectricMeter: false, electricUnitPrice: '', electricLastReading: '' });
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     await api.post(`/properties/${propertyId}/units`, form);
@@ -354,6 +368,9 @@ function EditUnitModal({ unit, onClose, onSaved }: { unit: Unit; onClose: () => 
     areaPing: unit.areaPing != null ? String(unit.areaPing) : '',
     tempControl: unit.tempControl ?? '',
     palletSlots: unit.palletSlots != null ? String(unit.palletSlots) : '',
+    hasElectricMeter: !!unit.hasElectricMeter,
+    electricUnitPrice: unit.electricUnitPrice != null ? String(unit.electricUnitPrice) : '',
+    electricLastReading: unit.electricLastReading != null ? String(unit.electricLastReading) : '',
   });
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

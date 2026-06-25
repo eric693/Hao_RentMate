@@ -25,6 +25,9 @@ export interface Unit {
   areaPing?: number;
   tempControl?: string;
   palletSlots?: number;
+  hasElectricMeter?: boolean;
+  electricUnitPrice?: number;
+  electricLastReading?: number;
   contracts?: Contract[];
   maintenanceRequests?: MaintenanceRequest[];
 }

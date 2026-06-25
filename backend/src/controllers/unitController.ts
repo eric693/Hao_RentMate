@@ -30,7 +30,8 @@ export async function createUnit(req: AuthRequest, res: Response) {
   const property = await prisma.property.findFirst({ where: { id: propertyId, userId: req.userId! } });
   if (!property) { res.status(404).json({ error: '找不到據點' }); return; }
 
-  const { unitNumber, floor, type, monthlyRent, description, areaPing, tempControl, palletSlots } = req.body;
+  const { unitNumber, floor, type, monthlyRent, description, areaPing, tempControl, palletSlots,
+    hasElectricMeter, electricUnitPrice, electricLastReading } = req.body;
   if (!unitNumber || !monthlyRent) {
     res.status(400).json({ error: '請填寫倉庫編號與月租金' });
     return;
@@ -41,6 +42,9 @@ export async function createUnit(req: AuthRequest, res: Response) {
       areaPing: areaPing !== undefined && areaPing !== '' ? Number(areaPing) : null,
       tempControl: tempControl || null,
       palletSlots: palletSlots !== undefined && palletSlots !== '' ? Number(palletSlots) : null,
+      hasElectricMeter: Boolean(hasElectricMeter),
+      electricUnitPrice: electricUnitPrice !== undefined && electricUnitPrice !== '' ? Number(electricUnitPrice) : null,
+      electricLastReading: electricLastReading !== undefined && electricLastReading !== '' ? Number(electricLastReading) : null,
     },
   });
   res.status(201).json(unit);
@@ -55,7 +59,8 @@ export async function updateUnit(req: AuthRequest, res: Response) {
   if (!unit || unit.property.userId !== req.userId!) {
     res.status(404).json({ error: '找不到倉庫' }); return;
   }
-  const { unitNumber, floor, type, monthlyRent, status, description, areaPing, tempControl, palletSlots } = req.body;
+  const { unitNumber, floor, type, monthlyRent, status, description, areaPing, tempControl, palletSlots,
+    hasElectricMeter, electricUnitPrice, electricLastReading } = req.body;
   const updated = await prisma.unit.update({
     where: { id },
     data: {
@@ -63,6 +68,9 @@ export async function updateUnit(req: AuthRequest, res: Response) {
       areaPing: areaPing !== undefined && areaPing !== '' ? Number(areaPing) : undefined,
       tempControl: tempControl !== undefined ? (tempControl || null) : undefined,
       palletSlots: palletSlots !== undefined && palletSlots !== '' ? Number(palletSlots) : undefined,
+      hasElectricMeter: hasElectricMeter !== undefined ? Boolean(hasElectricMeter) : undefined,
+      electricUnitPrice: electricUnitPrice !== undefined ? (electricUnitPrice !== '' ? Number(electricUnitPrice) : null) : undefined,
+      electricLastReading: electricLastReading !== undefined ? (electricLastReading !== '' ? Number(electricLastReading) : null) : undefined,
     },
   });
   res.json(updated);

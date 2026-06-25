@@ -4,7 +4,7 @@ import { prisma } from '../app';
 import { computeAllocations, SplitMethod } from '../services/utilityService';
 import { sendTenantMessage } from '../services/lineService';
 
-const SPLIT_METHODS: SplitMethod[] = ['EVEN', 'AREA', 'HEADCOUNT', 'USAGE'];
+const SPLIT_METHODS: SplitMethod[] = ['EVEN', 'AREA', 'HEADCOUNT', 'USAGE', 'METER'];
 const CATEGORY_ZH: Record<string, string> = { WATER: '水費', ELECTRICITY: '電費', GAS: '瓦斯費' };
 
 // 試算：給總額與方法，回傳每間房的分攤（不寫入），供房東確認
@@ -40,11 +40,18 @@ export async function createUtilityBill(req: AuthRequest, res: Response) {
     return;
   }
 
-  const allocations = await computeAllocations(propertyId, Number(totalAmount), method, inputs ?? []);
+  const allocations = await computeAllocations(propertyId, Number(totalAmount) || 0, method, inputs ?? []);
   if (allocations.length === 0) {
-    res.status(400).json({ error: '此據點目前無承租中倉庫可分攤' });
+    res.status(400).json({
+      error: method === 'METER' ? '請至少為一間有電錶的倉庫填寫本期讀數' : '此據點目前無承租中倉庫可分攤',
+    });
     return;
   }
+
+  // 獨立電錶模式：總額由各戶加總，而非由房東輸入
+  const billTotal = method === 'METER'
+    ? allocations.reduce((s, a) => s + a.amount, 0)
+    : Number(totalAmount);
 
   const bill = await prisma.utilityBill.create({
     data: {
@@ -52,11 +59,18 @@ export async function createUtilityBill(req: AuthRequest, res: Response) {
       category,
       periodStart: new Date(periodStart),
       periodEnd: new Date(periodEnd),
-      totalAmount: Number(totalAmount),
+      totalAmount: billTotal,
       method,
       note: note ?? undefined,
       allocations: {
-        create: allocations.map((a) => ({ unitId: a.unitId, amount: a.amount, basis: a.basis ?? undefined })),
+        create: allocations.map((a) => ({
+          unitId: a.unitId,
+          amount: a.amount,
+          basis: a.basis ?? undefined,
+          prevReading: a.prevReading ?? undefined,
+          currReading: a.currReading ?? undefined,
+          unitPrice: a.unitPrice ?? undefined,
+        })),
       },
     },
     include: { allocations: { include: { unit: true } } },
@@ -89,8 +103,14 @@ export async function updateUtilityBill(req: AuthRequest, res: Response) {
 
   const allocations = await computeAllocations(bill.propertyId, newTotal, newMethod, inputs ?? []);
   if (allocations.length === 0) {
-    res.status(400).json({ error: '此據點目前無承租中倉庫可分攤' }); return;
+    res.status(400).json({
+      error: newMethod === 'METER' ? '請至少為一間有電錶的倉庫填寫本期讀數' : '此據點目前無承租中倉庫可分攤',
+    }); return;
   }
+
+  const billTotal = newMethod === 'METER'
+    ? allocations.reduce((s, a) => s + a.amount, 0)
+    : newTotal;
 
   await prisma.utilityAllocation.deleteMany({ where: { utilityBillId: id } });
   const updated = await prisma.utilityBill.update({
@@ -98,12 +118,19 @@ export async function updateUtilityBill(req: AuthRequest, res: Response) {
     data: {
       category: newCategory,
       method: newMethod,
-      totalAmount: newTotal,
+      totalAmount: billTotal,
       periodStart: periodStart ? new Date(periodStart) : undefined,
       periodEnd: periodEnd ? new Date(periodEnd) : undefined,
       note: note !== undefined ? note : undefined,
       allocations: {
-        create: allocations.map((a) => ({ unitId: a.unitId, amount: a.amount, basis: a.basis ?? undefined })),
+        create: allocations.map((a) => ({
+          unitId: a.unitId,
+          amount: a.amount,
+          basis: a.basis ?? undefined,
+          prevReading: a.prevReading ?? undefined,
+          currReading: a.currReading ?? undefined,
+          unitPrice: a.unitPrice ?? undefined,
+        })),
       },
     },
     include: { allocations: { include: { unit: true } } },
@@ -143,16 +170,31 @@ export async function billUtilityToTenants(req: AuthRequest, res: Response) {
   }
 
   const periodStr = `${bill.periodStart.toISOString().split('T')[0]} ~ ${bill.periodEnd.toISOString().split('T')[0]}`;
+  const isMeter = bill.method === 'METER';
   let notified = 0;
   for (const a of bill.allocations) {
     const contract = a.unit.contracts[0];
     if (!contract?.tenant) continue;
+    // 獨立電錶模式：附上抄表明細，金額欄改稱「應繳」
+    const meterLine = isMeter && a.currReading != null
+      ? `\n讀數：${Number(a.prevReading ?? 0)} → ${Number(a.currReading)}（用電 ${Number(a.basis ?? 0)} 度 × NT$${Number(a.unitPrice ?? 0)}/度）`
+      : '';
+    const amountLabel = isMeter ? '應繳' : '應分攤';
     const ok = await sendTenantMessage(
       contract.tenant.id,
-      `${CATEGORY_ZH[bill.category] ?? '水電費'}通知\n\n${bill.property.name} ${a.unit.unitNumber}\n期間：${periodStr}\n應分攤：NT$${Number(a.amount).toLocaleString()}\n請依房東指定方式繳納，謝謝。`,
+      `${CATEGORY_ZH[bill.category] ?? '水電費'}通知\n\n${bill.property.name} ${a.unit.unitNumber}\n期間：${periodStr}${meterLine}\n${amountLabel}：NT$${Number(a.amount).toLocaleString()}\n請依房東指定方式繳納，謝謝。`,
     );
     if (ok) notified++;
   }
   await prisma.utilityAllocation.updateMany({ where: { utilityBillId: id }, data: { billed: true } });
+
+  // 獨立電錶：開帳後把本期讀數寫回倉庫，作為下期的「上期讀數」
+  if (isMeter) {
+    for (const a of bill.allocations) {
+      if (a.currReading != null) {
+        await prisma.unit.update({ where: { id: a.unitId }, data: { electricLastReading: a.currReading } });
+      }
+    }
+  }
   res.json({ ok: true, notified, total: bill.allocations.length });
 }

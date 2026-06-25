@@ -12,6 +12,35 @@ async function computeAllocations(propertyId, totalAmount, method, inputs) {
     const units = await activeUnits(propertyId);
     if (units.length === 0)
         return [];
+    // 獨立電錶（抄表）模式：逐戶 (本期-上期)×單價，只計入有抄表的倉庫
+    if (method === 'METER') {
+        const inputMap = new Map(inputs.map((i) => [i.unitId, i]));
+        const result = [];
+        for (const u of units) {
+            // 沒有獨立電錶的倉庫不收電費（即使前端誤送讀數也擋掉）
+            if (!u.hasElectricMeter)
+                continue;
+            const input = inputMap.get(u.id);
+            // 沒填本期讀數 → 此戶本期不收電費，不列入
+            if (!input || input.currReading === undefined || input.currReading === null)
+                continue;
+            const prev = input.prevReading ?? (u.electricLastReading != null ? Number(u.electricLastReading) : 0);
+            const curr = Number(input.currReading);
+            const price = input.unitPrice ?? (u.electricUnitPrice != null ? Number(u.electricUnitPrice) : 0);
+            const used = Math.max(0, curr - prev);
+            const amount = Math.round(used * price * 100) / 100;
+            result.push({
+                unitId: u.id,
+                unitNumber: u.unitNumber,
+                amount,
+                basis: used,
+                prevReading: prev,
+                currReading: curr,
+                unitPrice: price,
+            });
+        }
+        return result;
+    }
     const usageMap = new Map(inputs.map((i) => [i.unitId, i.usage ?? 0]));
     // 計算每間的權重
     const weights = units.map((u) => {
