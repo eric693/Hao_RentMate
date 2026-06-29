@@ -7,7 +7,7 @@ import { getDashboard } from '../controllers/dashboardController';
 import { exportData } from '../controllers/exportController';
 import { getProperties, createProperty, updateProperty, deleteProperty } from '../controllers/propertyController';
 import { getUnits, createUnit, updateUnit, deleteUnit } from '../controllers/unitController';
-import { getTenants, createTenant, updateTenant, deleteTenant, generateTenantBindingCode } from '../controllers/tenantController';
+import { getTenants, createTenant, updateTenant, deleteTenant, generateTenantBindingCode, messageTenants } from '../controllers/tenantController';
 import { getContracts, createContract, updateContract, generateSignInvite, getContractByToken, signContractByToken, getSignerIdDocument } from '../controllers/contractController';
 import { getDepositRefund, upsertDepositRefund, confirmRefund, notifyTenantRefund } from '../controllers/depositRefundController';
 import { getVacantUnits, addListing, updateListing, deleteListing } from '../controllers/listingController';
@@ -83,6 +83,7 @@ router.post('/tenants', ...can('tenants'), createTenant);
 router.put('/tenants/:id', ...can('tenants'), updateTenant);
 router.delete('/tenants/:id', ...can('tenants'), deleteTenant);
 router.post('/tenants/:id/line-code', ...can('tenants'), generateTenantBindingCode);
+router.post('/tenants/message', ...can('tenants'), messageTenants);
 
 // Contracts（合約）
 router.get('/contracts', ...can('contracts'), getContracts);

@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../app';
 import crypto from 'crypto';
+import { sendTenantMessage } from '../services/lineService';
 
 export async function getTenants(req: AuthRequest, res: Response) {
   const tenants = await prisma.tenant.findMany({
@@ -66,4 +67,26 @@ export async function generateTenantBindingCode(req: AuthRequest, res: Response)
     data: { lineBindingCode: code, lineBindingCodeExpiry: expiry },
   });
   res.json({ code, expiry });
+}
+
+// 自訂訊息透過 LINE 發給租客：未指定 tenantIds 則發給所有已綁定租客
+export async function messageTenants(req: AuthRequest, res: Response) {
+  const { tenantIds, message } = req.body;
+  const text = String(message ?? '').trim();
+  if (!text) { res.status(400).json({ error: '請輸入訊息內容' }); return; }
+
+  const where: any = { userId: req.userId!, lineUserId: { not: null } };
+  if (Array.isArray(tenantIds) && tenantIds.length > 0) where.id = { in: tenantIds };
+  const tenants = await prisma.tenant.findMany({ where, select: { id: true } });
+  if (tenants.length === 0) {
+    res.status(400).json({ error: '沒有可發送的對象（租客需已綁定 LINE）' });
+    return;
+  }
+
+  let sent = 0;
+  for (const t of tenants) {
+    const ok = await sendTenantMessage(t.id, text);
+    if (ok) sent++;
+  }
+  res.json({ sent, total: tenants.length });
 }

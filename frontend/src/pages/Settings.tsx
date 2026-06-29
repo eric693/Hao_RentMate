@@ -237,6 +237,9 @@ export default function Settings() {
               </div>
             )}
           </div>
+
+          {/* 群發訊息給租客 */}
+          <MessageTenantsCard tenants={tenantBindings} loading={loading} />
         </div>
       )}
 
@@ -248,6 +251,92 @@ export default function Settings() {
       {/* Tab: 通知設定 */}
       {tab === 'notifications' && (
         <NotificationsTab />
+      )}
+    </div>
+  );
+}
+
+function MessageTenantsCard({ tenants, loading }: { tenants: TenantBinding[]; loading: boolean }) {
+  const bound = tenants.filter((t) => t.lineUserId);
+  const [message, setMessage] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [sending, setSending] = useState(false);
+
+  const allSelected = bound.length > 0 && selected.length === bound.length;
+  function toggleAll() { setSelected(allSelected ? [] : bound.map((t) => t.id)); }
+  function toggle(id: string) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  async function send() {
+    if (!message.trim() || selected.length === 0) return;
+    setSending(true);
+    try {
+      const res = await api.post('/tenants/message', { tenantIds: selected, message: message.trim() });
+      alert(`已發送 ${res.data.sent} / ${res.data.total} 位租客`);
+      setMessage('');
+      setSelected([]);
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? '發送失敗');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Send className="w-5 h-5 text-green-600" />
+        </div>
+        <div>
+          <h2 className="font-semibold text-gray-700">發送訊息給租客</h2>
+          <p className="text-xs text-gray-400 mt-0.5">透過 LINE 官方帳號「租客系統」推播自訂訊息（僅限已綁定租客）</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-4 text-gray-400 text-sm">載入中...</div>
+      ) : bound.length === 0 ? (
+        <div className="text-center py-4 text-gray-400 text-sm">目前沒有已綁定 LINE 的租客，請先讓租客完成綁定</div>
+      ) : (
+        <div className="space-y-3">
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={4}
+            placeholder="輸入要發送的訊息內容…"
+            className="input w-full resize-none"
+          />
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-gray-600">發送對象（{selected.length}/{bound.length}）</span>
+              <button onClick={toggleAll} className="text-xs text-brand hover:underline">{allSelected ? '取消全選' : '全選已綁定'}</button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {bound.map((t) => {
+                const on = selected.includes(t.id);
+                const unitNumber = t.contracts?.[0]?.unit?.unitNumber;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => toggle(t.id)}
+                    className={`text-xs px-2.5 py-1.5 rounded-full border transition-colors ${on ? 'bg-brand/10 border-brand text-brand' : 'bg-white border-gray-200 text-gray-500'}`}
+                  >
+                    {on ? '✓ ' : ''}{t.name}{unitNumber ? ` · ${unitNumber}` : ''}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <button
+            onClick={send}
+            disabled={sending || !message.trim() || selected.length === 0}
+            className="btn-primary w-full flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />{sending ? '發送中...' : `發送給 ${selected.length} 位租客`}
+          </button>
+        </div>
       )}
     </div>
   );
