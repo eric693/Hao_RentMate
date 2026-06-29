@@ -78,7 +78,7 @@ export async function createContract(req: AuthRequest, res: Response) {
       monthlyRent,
       depositAmount: depositAmount ?? monthlyRent * 2,
       depositPaid: depositPaid ?? false,
-      rentDueDay: rentDueDay ?? 5,
+      rentDueDay: rentDueDay !== undefined && rentDueDay !== '' ? Number(rentDueDay) : 5,
       notes,
       customTerms: customTerms || null,
     },
