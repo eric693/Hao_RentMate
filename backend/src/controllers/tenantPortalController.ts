@@ -98,6 +98,37 @@ export async function tenantPaymentInfo(req: TenantRequest, res: Response) {
   });
 }
 
+// 租客的水電費帳單（僅已開帳、且為自己現行承租倉庫；含獨立電錶抄表度數）
+export async function tenantUtilityBills(req: TenantRequest, res: Response) {
+  const allocations = await prisma.utilityAllocation.findMany({
+    where: {
+      billed: true,
+      unit: { contracts: { some: { tenantId: req.tenantId!, status: 'ACTIVE' } } },
+    },
+    include: {
+      unit: { include: { property: { select: { name: true } } } },
+      utilityBill: true,
+    },
+    orderBy: { utilityBill: { periodEnd: 'desc' } },
+  });
+  res.json(
+    allocations.map((a) => ({
+      id: a.id,
+      category: a.utilityBill.category, // WATER | ELECTRICITY | GAS
+      method: a.utilityBill.method,     // METER | EVEN | AREA | HEADCOUNT | USAGE
+      periodStart: a.utilityBill.periodStart,
+      periodEnd: a.utilityBill.periodEnd,
+      amount: Number(a.amount),
+      basis: a.basis != null ? Number(a.basis) : null,             // METER：本期用電度數
+      prevReading: a.prevReading != null ? Number(a.prevReading) : null,
+      currReading: a.currReading != null ? Number(a.currReading) : null,
+      unitPrice: a.unitPrice != null ? Number(a.unitPrice) : null,
+      propertyName: a.unit.property.name,
+      unitNumber: a.unit.unitNumber,
+    })),
+  );
+}
+
 // 租客的維修申請
 export async function tenantMaintenanceList(req: TenantRequest, res: Response) {
   const requests = await prisma.maintenanceRequest.findMany({

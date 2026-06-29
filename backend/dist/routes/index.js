@@ -160,6 +160,7 @@ router.get('/tenant/me', tenantAuth_1.requireTenant, tenantPortalController_1.te
 router.get('/tenant/contracts', tenantAuth_1.requireTenant, tenantPortalController_1.tenantContracts);
 router.get('/tenant/rent-records', tenantAuth_1.requireTenant, tenantPortalController_1.tenantRentRecords);
 router.get('/tenant/payment-info', tenantAuth_1.requireTenant, tenantPortalController_1.tenantPaymentInfo);
+router.get('/tenant/utility-bills', tenantAuth_1.requireTenant, tenantPortalController_1.tenantUtilityBills);
 router.get('/tenant/maintenance', tenantAuth_1.requireTenant, tenantPortalController_1.tenantMaintenanceList);
 router.post('/tenant/maintenance', tenantAuth_1.requireTenant, tenantPortalController_1.tenantCreateMaintenance);
 router.get('/tenant/handovers', tenantAuth_1.requireTenant, handoverController_1.tenantHandovers);

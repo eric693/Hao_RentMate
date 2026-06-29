@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import tenantApi from '../api/tenantClient';
 
-type Tab = 'home' | 'contracts' | 'rent' | 'maintenance';
+type Tab = 'home' | 'contracts' | 'rent' | 'utility' | 'maintenance';
 
 const fmtMoney = (v: any) => `NT$ ${Number(v).toLocaleString()}`;
 const fmtDate = (v: any) => (v ? new Date(v).toLocaleDateString('zh-TW') : '—');
+
+const UTILITY_LABEL: Record<string, string> = { WATER: '水費', ELECTRICITY: '電費', GAS: '瓦斯費' };
 
 const RENT_STATUS: Record<string, { label: string; cls: string }> = {
   PAID: { label: '已繳清', cls: 'badge-paid' },
@@ -26,6 +28,7 @@ export default function TenantPortal() {
   const [payment, setPayment] = useState<any>(null);
   const [contracts, setContracts] = useState<any[]>([]);
   const [rent, setRent] = useState<any[]>([]);
+  const [utility, setUtility] = useState<any[]>([]);
   const [maint, setMaint] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,17 +52,19 @@ export default function TenantPortal() {
 
   async function loadAll() {
     try {
-      const [meRes, payRes, conRes, rentRes, mRes] = await Promise.all([
+      const [meRes, payRes, conRes, rentRes, utilRes, mRes] = await Promise.all([
         tenantApi.get('/tenant/me'),
         tenantApi.get('/tenant/payment-info'),
         tenantApi.get('/tenant/contracts'),
         tenantApi.get('/tenant/rent-records'),
+        tenantApi.get('/tenant/utility-bills'),
         tenantApi.get('/tenant/maintenance'),
       ]);
       setMe(meRes.data);
       setPayment(payRes.data);
       setContracts(conRes.data);
       setRent(rentRes.data);
+      setUtility(utilRes.data);
       setMaint(mRes.data);
     } catch (err: any) {
       setError('資料載入失敗，請重新登入');
@@ -112,6 +117,7 @@ export default function TenantPortal() {
     { key: 'home', label: '首頁' },
     { key: 'contracts', label: '租約' },
     { key: 'rent', label: '繳費' },
+    { key: 'utility', label: '水電' },
     { key: 'maintenance', label: '報修' },
   ];
 
@@ -238,6 +244,33 @@ export default function TenantPortal() {
                   </p>
                 </div>
                 <StatusBadge status={r.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── 水電費 ── */}
+        {tab === 'utility' && (
+          <div className="space-y-3">
+            {utility.length === 0 && <p className="text-gray-400 text-center py-8">尚無水電帳單</p>}
+            {utility.map((u) => (
+              <div key={u.id} className="card">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      {UTILITY_LABEL[u.category] ?? '水電費'}
+                      <span className="text-xs text-gray-400 ml-2">{u.propertyName} {u.unitNumber}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{fmtDate(u.periodStart)} ~ {fmtDate(u.periodEnd)}</p>
+                  </div>
+                  <p className="font-bold text-gray-800">{fmtMoney(u.amount)}</p>
+                </div>
+                {u.method === 'METER' && u.currReading != null && (
+                  <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500">
+                    抄表：{u.prevReading} → {u.currReading} ・ 本期用電 <span className="font-medium text-gray-700">{u.basis} 度</span>
+                    {u.unitPrice != null && <> ・ 單價 NT$ {u.unitPrice}/度</>}
+                  </div>
+                )}
               </div>
             ))}
           </div>

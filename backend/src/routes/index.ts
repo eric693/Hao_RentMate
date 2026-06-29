@@ -39,7 +39,7 @@ import { getTenantCredit, getTenantsCreditOverview, getMyCredit } from '../contr
 import { getRentComps, getUnitPricing } from '../controllers/rentCompsController';
 import { tenantLogin, tenantAuthConfig } from '../controllers/tenantAuthController';
 import {
-  tenantMe, tenantContracts, tenantRentRecords, tenantPaymentInfo,
+  tenantMe, tenantContracts, tenantRentRecords, tenantPaymentInfo, tenantUtilityBills,
   tenantMaintenanceList, tenantCreateMaintenance,
 } from '../controllers/tenantPortalController';
 
@@ -195,6 +195,7 @@ router.get('/tenant/me', requireTenant, tenantMe);
 router.get('/tenant/contracts', requireTenant, tenantContracts);
 router.get('/tenant/rent-records', requireTenant, tenantRentRecords);
 router.get('/tenant/payment-info', requireTenant, tenantPaymentInfo);
+router.get('/tenant/utility-bills', requireTenant, tenantUtilityBills);
 router.get('/tenant/maintenance', requireTenant, tenantMaintenanceList);
 router.post('/tenant/maintenance', requireTenant, tenantCreateMaintenance);
 router.get('/tenant/handovers', requireTenant, tenantHandovers);
