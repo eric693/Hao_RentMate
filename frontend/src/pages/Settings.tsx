@@ -71,6 +71,15 @@ export default function Settings() {
     setTenantCodes(prev => ({ ...prev, [tenantId]: { code: res.data.code, expiry: res.data.expiry } }));
   }
 
+  async function sendLoginLink(tenantId: string) {
+    try {
+      const res = await api.post(`/tenants/${tenantId}/send-login-link`);
+      alert(res.data.sent ? '已透過 LINE 傳送登入連結與登入碼給租客' : '傳送失敗，租客可能未綁定 LINE');
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? '傳送失敗');
+    }
+  }
+
   function copyCode(code: string) {
     navigator.clipboard.writeText(code).catch(() => {});
     setCopied(true);
@@ -216,9 +225,16 @@ export default function Settings() {
                           </div>
                           {t.lineDisplayName && <p className="text-xs text-gray-400 mt-0.5">LINE：{t.lineDisplayName}</p>}
                         </div>
-                        <button onClick={() => generateTenantCode(t.id)} className="btn-secondary text-xs px-2 py-1 flex items-center gap-1 whitespace-nowrap">
-                          <UserPlus className="w-3 h-3" />{t.lineUserId ? '重新產生登入碼' : '產生邀請碼'}
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {t.lineUserId && (
+                            <button onClick={() => sendLoginLink(t.id)} className="btn-primary text-xs px-2 py-1 flex items-center gap-1 whitespace-nowrap">
+                              <Send className="w-3 h-3" />傳登入連結
+                            </button>
+                          )}
+                          <button onClick={() => generateTenantCode(t.id)} className="btn-secondary text-xs px-2 py-1 flex items-center gap-1 whitespace-nowrap">
+                            <UserPlus className="w-3 h-3" />{t.lineUserId ? '重新產生登入碼' : '產生邀請碼'}
+                          </button>
+                        </div>
                       </div>
                       {code && (
                         <div className="mt-2 bg-blue-50 rounded-lg p-2 flex items-center justify-between">
@@ -308,6 +324,16 @@ function MessageTenantsCard({ tenants, loading }: { tenants: TenantBinding[]; lo
             placeholder="輸入要發送的訊息內容…"
             className="input w-full resize-none"
           />
+          <button
+            type="button"
+            onClick={() => {
+              const link = `${window.location.origin}/tenant/login`;
+              setMessage((m) => (m.includes(link) ? m : (m ? m.trimEnd() + '\n' : '') + `租客專區登入：${link}`));
+            }}
+            className="text-xs text-brand hover:underline"
+          >
+            ＋ 插入租客專區連結
+          </button>
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-medium text-gray-600">發送對象（{selected.length}/{bound.length}）</span>

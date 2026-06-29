@@ -66,6 +66,7 @@ router.put('/tenants/:id', ...can('tenants'), tenantController_1.updateTenant);
 router.delete('/tenants/:id', ...can('tenants'), tenantController_1.deleteTenant);
 router.post('/tenants/:id/line-code', ...can('tenants'), tenantController_1.generateTenantBindingCode);
 router.post('/tenants/message', ...can('tenants'), tenantController_1.messageTenants);
+router.post('/tenants/:id/send-login-link', ...can('tenants'), tenantController_1.sendTenantLoginLink);
 // Contracts（合約）
 router.get('/contracts', ...can('contracts'), contractController_1.getContracts);
 router.post('/contracts', ...can('contracts'), contractController_1.createContract);

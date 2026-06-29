@@ -8,10 +8,12 @@ exports.createTenant = createTenant;
 exports.updateTenant = updateTenant;
 exports.deleteTenant = deleteTenant;
 exports.generateTenantBindingCode = generateTenantBindingCode;
+exports.sendTenantLoginLink = sendTenantLoginLink;
 exports.messageTenants = messageTenants;
 const app_1 = require("../app");
 const crypto_1 = __importDefault(require("crypto"));
 const lineService_1 = require("../services/lineService");
+const config_1 = require("../config");
 async function getTenants(req, res) {
     const tenants = await app_1.prisma.tenant.findMany({
         where: { userId: req.userId },
@@ -80,6 +82,26 @@ async function generateTenantBindingCode(req, res) {
         data: { lineBindingCode: code, lineBindingCodeExpiry: expiry },
     });
     res.json({ code, expiry });
+}
+// 透過 LINE 一鍵把「租客專區登入網址 + 當下產生的登入碼」推給已綁定租客
+async function sendTenantLoginLink(req, res) {
+    const { id } = req.params;
+    const tenant = await app_1.prisma.tenant.findFirst({ where: { id, userId: req.userId } });
+    if (!tenant) {
+        res.status(404).json({ error: '找不到租客' });
+        return;
+    }
+    if (!tenant.lineUserId) {
+        res.status(400).json({ error: '租客尚未綁定 LINE，無法傳送' });
+        return;
+    }
+    const code = crypto_1.default.randomBytes(4).toString('hex').toUpperCase();
+    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await app_1.prisma.tenant.update({ where: { id }, data: { lineBindingCode: code, lineBindingCodeExpiry: expiry } });
+    const url = `${config_1.config.appUrl}/tenant/login`;
+    const text = `🔑 租客專區登入\n\n${tenant.name} 您好，\n登入網址：${url}\n登入碼：${code}（24 小時內有效）\n\n登入後可查看租約、繳費、水電與線上報修。`;
+    const sent = await (0, lineService_1.sendTenantMessage)(id, text);
+    res.json({ sent, code, expiry });
 }
 // 自訂訊息透過 LINE 發給租客：未指定 tenantIds 則發給所有已綁定租客
 async function messageTenants(req, res) {
