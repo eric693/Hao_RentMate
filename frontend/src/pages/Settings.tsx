@@ -216,17 +216,15 @@ export default function Settings() {
                           </div>
                           {t.lineDisplayName && <p className="text-xs text-gray-400 mt-0.5">LINE：{t.lineDisplayName}</p>}
                         </div>
-                        {!t.lineUserId && (
-                          <button onClick={() => generateTenantCode(t.id)} className="btn-secondary text-xs px-2 py-1 flex items-center gap-1">
-                            <UserPlus className="w-3 h-3" />產生邀請碼
-                          </button>
-                        )}
+                        <button onClick={() => generateTenantCode(t.id)} className="btn-secondary text-xs px-2 py-1 flex items-center gap-1 whitespace-nowrap">
+                          <UserPlus className="w-3 h-3" />{t.lineUserId ? '重新產生登入碼' : '產生邀請碼'}
+                        </button>
                       </div>
                       {code && (
                         <div className="mt-2 bg-blue-50 rounded-lg p-2 flex items-center justify-between">
                           <div>
-                            <p className="text-xs text-blue-700">邀請碼：<span className="font-bold font-mono text-base tracking-widest">{code.code}</span></p>
-                            <p className="text-xs text-gray-400">有效至 {new Date(code.expiry).toLocaleString('zh-TW')}</p>
+                            <p className="text-xs text-blue-700">{t.lineUserId ? '登入碼' : '邀請碼'}：<span className="font-bold font-mono text-base tracking-widest">{code.code}</span></p>
+                            <p className="text-xs text-gray-400">有效至 {new Date(code.expiry).toLocaleString('zh-TW')}・可用於登入租客專區</p>
                           </div>
                           <button onClick={() => copyCode(code.code)} className="p-1 rounded bg-white border border-blue-100">
                             {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
