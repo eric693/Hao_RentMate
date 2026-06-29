@@ -170,10 +170,17 @@ async function billUtilityToTenants(req, res) {
     const periodStr = `${bill.periodStart.toISOString().split('T')[0]} ~ ${bill.periodEnd.toISOString().split('T')[0]}`;
     const isMeter = bill.method === 'METER';
     let notified = 0;
+    let unbound = 0; // 有租客但未綁定 LINE，收不到通知
+    const unboundNames = [];
     for (const a of bill.allocations) {
         const contract = a.unit.contracts[0];
         if (!contract?.tenant)
             continue;
+        if (!contract.tenant.lineUserId) {
+            unbound++;
+            unboundNames.push(`${a.unit.unitNumber} ${contract.tenant.name}`);
+            continue;
+        }
         // 獨立電錶模式：附上抄表明細，金額欄改稱「應繳」
         const meterLine = isMeter && a.currReading != null
             ? `\n讀數：${Number(a.prevReading ?? 0)} → ${Number(a.currReading)}（用電 ${Number(a.basis ?? 0)} 度 × NT$${Number(a.unitPrice ?? 0)}/度）`
@@ -192,5 +199,5 @@ async function billUtilityToTenants(req, res) {
             }
         }
     }
-    res.json({ ok: true, notified, total: bill.allocations.length });
+    res.json({ ok: true, notified, total: bill.allocations.length, unbound, unboundNames });
 }

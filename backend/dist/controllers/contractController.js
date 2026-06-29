@@ -81,7 +81,7 @@ async function createContract(req, res) {
             startDate: new Date(startDate),
             endDate: new Date(endDate),
             monthlyRent: Number(monthlyRent),
-            depositAmount: depositAmount !== undefined && depositAmount !== '' ? Number(depositAmount) : Number(monthlyRent) * 2,
+            depositAmount: depositAmount !== undefined && depositAmount !== '' ? Number(depositAmount) : 0,
             depositPaid: depositPaid ?? false,
             rentDueDay: rentDueDay !== undefined && rentDueDay !== '' ? Number(rentDueDay) : 5,
             notes,

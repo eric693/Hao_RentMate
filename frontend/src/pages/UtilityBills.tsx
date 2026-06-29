@@ -55,7 +55,11 @@ export default function UtilityBills() {
 
   async function billToTenants(id: string) {
     const r = await api.post(`/utility-bills/${id}/bill`);
-    alert(`已透過 LINE 通知 ${r.data.notified} / ${r.data.total} 位租客`);
+    let msg = `已透過 LINE 通知 ${r.data.notified} / ${r.data.total} 位租客`;
+    if (r.data.unbound > 0) {
+      msg += `\n\n⚠️ ${r.data.unbound} 位尚未綁定 LINE、未收到：\n${(r.data.unboundNames ?? []).join('、')}\n可至「帳號設定」傳登入連結或請其綁定。`;
+    }
+    alert(msg);
     fetchData();
   }
 
